@@ -1,16 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AdminsScreen extends StatelessWidget {
-
+class AdminsScreen extends StatefulWidget {
   const AdminsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<AdminsScreen> createState() => _AdminsScreenState();
+}
 
-    final admins = [
-      "Admin 1",
-      "Admin 2"
-    ];
+class _AdminsScreenState extends State<AdminsScreen> {
+
+  final supabase = Supabase.instance.client;
+
+  late Future<List<Map<String, dynamic>>> adminsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    adminsFuture = getAdmins();
+  }
+
+  Future<List<Map<String, dynamic>>> getAdmins() async {
+
+    final response = await supabase
+        .from('admins')
+        .select()
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<void> deleteAdmin(String id) async {
+
+    await supabase
+        .from('admins')
+        .delete()
+        .eq('id', id);
+
+    setState(() {
+      adminsFuture = getAdmins();
+    });
+
+  }
+
+  @override
+  Widget build(BuildContext context) {
 
     return Scaffold(
 
@@ -18,28 +52,53 @@ class AdminsScreen extends StatelessWidget {
         title: const Text("Admins"),
       ),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: (){},
-        child: const Icon(Icons.add),
-      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
 
-      body: ListView.builder(
+        future: adminsFuture,
 
-        itemCount: admins.length,
+        builder: (context, snapshot) {
 
-        itemBuilder: (context,index){
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          return ListTile(
+          if (snapshot.hasError) {
+            return const Center(child: Text("Error loading admins"));
+          }
 
-            leading: const Icon(Icons.admin_panel_settings),
+          final admins = snapshot.data ?? [];
 
-            title: Text(admins[index]),
+          if (admins.isEmpty) {
+            return const Center(child: Text("No admins yet"));
+          }
 
-            trailing: IconButton(
-              icon: const Icon(Icons.delete,color: Colors.red),
-              onPressed: (){},
-            ),
+          return ListView.builder(
 
+            itemCount: admins.length,
+
+            itemBuilder: (context, index) {
+
+              final admin = admins[index];
+
+              return ListTile(
+
+                title: Text(admin["name"] ?? "No Name"),
+
+                subtitle: Text(admin["access_code"] ?? ""),
+
+                trailing: IconButton(
+
+                  icon: const Icon(Icons.delete, color: Colors.red),
+
+                  onPressed: () async {
+                    await deleteAdmin(admin["id"]);
+                  },
+
+                ),
+
+              );
+
+            },
           );
         },
       ),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'semester_screen.dart';
 import 'upload_screen.dart';
-import 'students_screen.dart';
-import 'admins_screen.dart';
+import 'package:ced25/screens/admins_screen.dart' as admin;
+import 'package:ced25/screens/students_screen.dart' as student;
 import 'generate_code_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -86,7 +86,7 @@ class DashboardScreen extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const StudentsScreen(),
+          builder: (_) => const student.StudentsScreen(),
         ),
       );
     },
@@ -101,7 +101,7 @@ class DashboardScreen extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const AdminsScreen(),
+          builder: (_) => const admin.AdminsScreen(),
         ),
       );
     },
