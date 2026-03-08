@@ -4,13 +4,27 @@ A new Flutter project.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+# Study Material App
 
-A few resources to get you started if this is your first Flutter project:
+## Overview
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+A mobile application built with Flutter that allows students to access and download academic study materials. The system includes role-based access where administrators can manage students and upload materials, while students can log in to view and download resources.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Technology Stack
+
+* Flutter
+* Supabase
+* Dart
+
+## Setup
+  Clone the repository:
+  git clone https://github.com/Jeevan4090/CED25.git
+
+  Install dependencies:
+  flutter pub get
+
+  Run the application:
+  flutter run
+
+  ## Author
+  Jeevan
