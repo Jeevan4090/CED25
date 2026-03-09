@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -9,7 +10,6 @@ class AdminsScreen extends StatefulWidget {
 }
 
 class _AdminsScreenState extends State<AdminsScreen> {
-
   final supabase = Supabase.instance.client;
 
   late Future<List<Map<String, dynamic>>> adminsFuture;
@@ -21,7 +21,6 @@ class _AdminsScreenState extends State<AdminsScreen> {
   }
 
   Future<List<Map<String, dynamic>>> getAdmins() async {
-
     final response = await supabase
         .from('admins')
         .select()
@@ -30,30 +29,14 @@ class _AdminsScreenState extends State<AdminsScreen> {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<void> deleteAdmin(String id) async {
-
-    await supabase
-        .from('admins')
-        .delete()
-        .eq('id', id);
-
-    setState(() {
-      adminsFuture = getAdmins();
-    });
-
-  }
-
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(
         title: const Text("Admins"),
       ),
 
       body: FutureBuilder<List<Map<String, dynamic>>>(
-
         future: adminsFuture,
 
         builder: (context, snapshot) {
@@ -73,31 +56,108 @@ class _AdminsScreenState extends State<AdminsScreen> {
           }
 
           return ListView.builder(
-
+            padding: const EdgeInsets.all(16),
             itemCount: admins.length,
 
             itemBuilder: (context, index) {
 
               final admin = admins[index];
 
-              return ListTile(
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
 
-                title: Text(admin["name"] ?? "No Name"),
+                child: Container(
 
-                subtitle: Text(admin["access_code"] ?? ""),
+                  padding: const EdgeInsets.all(16),
 
-                trailing: IconButton(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
 
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0,4),
+                      )
+                    ],
+                  ),
 
-                  onPressed: () async {
-                    await deleteAdmin(admin["id"]);
-                  },
+                  child: Row(
+                    children: [
 
+                      /// Crown Icon (Royal)
+                      Container(
+                        height: 46,
+                        width: 46,
+
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+
+                        child: const Icon(
+                          Icons.workspace_premium,
+                          color: Colors.amber,
+                          size: 26,
+                        ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      /// Admin info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+
+                          children: [
+
+                            Text(
+                              admin["name"] ?? "No Name",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 4),
+
+                            Text(
+                              "Created: ${admin["created_at"].toString().substring(0,10)}",
+                              style: const TextStyle(
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      /// Admin badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+
+                        child: const Text(
+                          "ADMIN",
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+
+                    ],
+                  ),
                 ),
-
               );
-
             },
           );
         },
@@ -105,3 +165,4 @@ class _AdminsScreenState extends State<AdminsScreen> {
     );
   }
 }
+
