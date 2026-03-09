@@ -135,109 +135,188 @@ class _UploadScreenState extends State<UploadScreen> {
       ),
 
       body: Padding(
+        padding: const EdgeInsets.all(16),
 
-        padding: const EdgeInsets.all(20),
+        child: Container(
 
-        child: ListView(
+          padding: const EdgeInsets.all(20),
 
-          children: [
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
 
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: "Material Title",
-                border: OutlineInputBorder()
-              ),
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0,4),
+              )
+            ],
+          ),
 
-            const SizedBox(height:20),
+          child: ListView(
 
-            DropdownButtonFormField(
-              value: semester,
-              items: semesters.map((e){
-                return DropdownMenuItem(
-                  value: e,
-                  child: Text("Semester $e"),
-                );
-              }).toList(),
-              onChanged: (value){
-                setState(() {
-                  semester = value!;
-                });
-              },
-              decoration: const InputDecoration(
-                labelText: "Semester",
-                border: OutlineInputBorder()
-              ),
-            ),
+            children: [
 
-            const SizedBox(height:20),
+              /// Title
+              TextField(
+                controller: titleController,
 
-            DropdownButtonFormField(
-              value: subject,
-              items: subjects.map((e){
-                return DropdownMenuItem(
-                  value: e,
-                  child: Text(e),
-                );
-              }).toList(),
-              onChanged: (value){
-                setState(() {
-                  subject = value!;
-                });
-              },
-              decoration: const InputDecoration(
-                labelText: "Subject",
-                border: OutlineInputBorder()
-              ),
-            ),
-
-            const SizedBox(height:20),
-
-            DropdownButtonFormField(
-              value: type,
-              items: types.map((e){
-                return DropdownMenuItem(
-                  value: e,
-                  child: Text(e),
-                );
-              }).toList(),
-              onChanged: (value){
-                setState(() {
-                  type = value!;
-                });
-              },
-              decoration: const InputDecoration(
-                labelText: "Material Type",
-                border: OutlineInputBorder()
-              ),
-            ),
-
-            const SizedBox(height:20),
-
-            ElevatedButton.icon(
-              onPressed: pickFile,
-              icon: const Icon(Icons.attach_file),
-              label: const Text("Select File"),
-            ),
-
-            if(fileName != null)
-              Padding(
-                padding: const EdgeInsets.only(top:10),
-                child: Text(
-                  fileName!,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  labelText: "Material Title",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
 
-            const SizedBox(height:30),
+              const SizedBox(height:20),
 
-            ElevatedButton(
-              onPressed: upload,
-              child: const Text("Upload"),
-            ),
+              /// Semester
+              DropdownButtonFormField(
+                value: semester,
 
-          ],
+                items: semesters.map((e){
+                  return DropdownMenuItem(
+                    value: e,
+                    child: Text("Semester $e"),
+                  );
+                }).toList(),
+
+                onChanged: (value){
+                  setState(() {
+                    semester = value!;
+                  });
+                },
+
+                decoration: InputDecoration(
+                  labelText: "Semester",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height:20),
+
+              /// Subject
+              DropdownButtonFormField(
+                value: subject,
+
+                items: subjects.map((e){
+                  return DropdownMenuItem(
+                    value: e,
+                    child: Text(e),
+                  );
+                }).toList(),
+
+                onChanged: (value){
+                  setState(() {
+                    subject = value!;
+                  });
+                },
+
+                decoration: InputDecoration(
+                  labelText: "Subject",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height:20),
+
+              /// Type
+              DropdownButtonFormField(
+                value: type,
+
+                items: types.map((e){
+                  return DropdownMenuItem(
+                    value: e,
+                    child: Text(e),
+                  );
+                }).toList(),
+
+                onChanged: (value){
+                  setState(() {
+                    type = value!;
+                  });
+                },
+
+                decoration: InputDecoration(
+                  labelText: "Material Type",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height:25),
+
+              /// File selector
+              InkWell(
+                onTap: pickFile,
+
+                borderRadius: BorderRadius.circular(12),
+
+                child: Container(
+
+                  padding: const EdgeInsets.symmetric(vertical:16),
+
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.attach_file),
+                      SizedBox(width:8),
+                      Text("Select File"),
+                    ],
+                  ),
+                ),
+              ),
+
+              if(fileName != null)
+                Padding(
+                  padding: const EdgeInsets.only(top:10),
+                  child: Text(
+                    "Selected: $fileName",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height:30),
+
+              /// Upload button
+              SizedBox(
+                width: double.infinity,
+
+                child: ElevatedButton(
+
+                  onPressed: upload,
+
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical:16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+
+                  child: const Text(
+                    "Upload Material",
+                    style: TextStyle(fontSize:16),
+                  ),
+                ),
+              ),
+
+            ],
+          ),
         ),
       ),
     );

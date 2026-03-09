@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_colors.dart';
 import '../screens/pdf_viewer_screen.dart';
+import '../screens/file_viewer_screen.dart';
 
 class MaterialTile extends StatelessWidget {
 
@@ -16,62 +17,46 @@ class MaterialTile extends StatelessWidget {
     required this.fileUrl,
   });
 
-  Color getColor(){
-
-    switch(type){
-
+  Color getColor() {
+    switch (type) {
       case "Notes":
         return AppColors.notes;
-
       case "PYQ":
         return AppColors.pyq;
-
       case "Assignment":
         return AppColors.assignment;
-
       case "Lab":
         return AppColors.lab;
-
       case "Important":
         return AppColors.important;
-
       default:
         return Colors.grey;
     }
   }
 
-  IconData getIcon(){
-
-    switch(type){
-
+  IconData getIcon() {
+    switch (type) {
       case "Notes":
         return Icons.menu_book;
-
       case "PYQ":
         return Icons.history_edu;
-
       case "Assignment":
         return Icons.assignment;
-
       case "Lab":
         return Icons.science;
-
       case "Important":
         return Icons.star;
-
       default:
         return Icons.insert_drive_file;
     }
   }
 
   Future<void> openFile() async {
-
     final uri = Uri.parse(fileUrl);
 
-    if(!await launchUrl(uri, mode: LaunchMode.externalApplication)){
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       throw Exception("Could not open file");
     }
-
   }
 
   @override
@@ -79,81 +64,123 @@ class MaterialTile extends StatelessWidget {
 
     final color = getColor();
 
-    return GestureDetector(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
 
-      onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => PdfViewerScreen(
-        url: fileUrl,
-        title: title,
-      ),
-    ),
-  );
-},
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
 
-      child: Container(
-
-        margin: const EdgeInsets.only(bottom:16),
-
-        padding: const EdgeInsets.all(18),
-
-        decoration: BoxDecoration(
-
-          color: color.withOpacity(0.15),
-
+        child: InkWell(
           borderRadius: BorderRadius.circular(18),
 
-          border: Border.all(
-            color: color,
-            width: 2
-          ),
-        ),
+          onTap: () {
 
-        child: Row(
-          children: [
+  final ext = fileUrl.split('.').last.toLowerCase();
 
-            CircleAvatar(
-              backgroundColor: color,
-              child: Icon(
-                getIcon(),
-                color: Colors.white,
+  if (ext == "pdf") {
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfViewerScreen(
+  url: fileUrl,
+  title: title,
+),
+      ),
+    );
+
+  } else {
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FileViewerScreen(fileUrl: fileUrl),
+      ),
+    );
+
+  }
+
+},
+
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+
+            padding: const EdgeInsets.all(18),
+
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(18),
+
+              border: Border.all(
+                color: color.withOpacity(0.35),
+                width: 1.5,
               ),
+
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                )
+              ],
             ),
 
-            const SizedBox(width:16),
+            child: Row(
+              children: [
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                /// icon container
+                Container(
+                  height: 42,
+                  width: 42,
 
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize:16,
-                      fontWeight: FontWeight.bold
-                    ),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.20),
+                    borderRadius: BorderRadius.circular(12),
                   ),
 
-                  const SizedBox(height:4),
+                  child: Icon(
+                    getIcon(),
+                    color: color,
+                  ),
+                ),
 
-                  Text(
-                    type,
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.w600
-                    ),
-                  )
+                const SizedBox(width: 16),
 
-                ],
-              ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 3),
+
+                      Text(
+                        type,
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 18,
+                  color: color,
+                ),
+              ],
             ),
-
-            const Icon(Icons.visibility)
-
-          ],
+          ),
         ),
       ),
     );

@@ -3,10 +3,31 @@ import '../theme/app_colors.dart';
 import 'subject_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SemesterScreen extends StatelessWidget {
+class SemesterScreen extends StatefulWidget {
   const SemesterScreen({super.key});
 
-  final List<int> semesters = const [1, 2, 3, 4, 5, 6, 7, 8];
+  @override
+  State<SemesterScreen> createState() => _SemesterScreenState();
+}
+
+class _SemesterScreenState extends State<SemesterScreen>
+    with SingleTickerProviderStateMixin {
+
+  final List<int> semesters = const [1,2,3,4,5,6,7,8];
+
+  late AnimationController controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    controller.forward();
+  }
 
   Color getColor(int index) {
     final colors = [
@@ -25,35 +46,40 @@ class SemesterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
+
+      backgroundColor: AppColors.background,
+
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
         title: const Text("Select Semester"),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: "Logout",
+
             onPressed: () {
               showDialog(
                 context: context,
+
                 builder: (context) => AlertDialog(
                   title: const Text("Logout"),
                   content: const Text("Are you sure you want to logout?"),
+
                   actions: [
+
                     TextButton(
-                      onPressed: () {
+                      onPressed: (){
                         Navigator.pop(context);
                       },
                       child: const Text("Cancel"),
                     ),
+
                     TextButton(
                       onPressed: () async {
+
                         await Supabase.instance.client.auth.signOut();
 
                         if (!context.mounted) return;
@@ -66,58 +92,110 @@ class SemesterScreen extends StatelessWidget {
                 ),
               );
             },
-          ),
+          )
         ],
       ),
 
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
+      body: ListView.builder(
 
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
+        padding: const EdgeInsets.all(18),
 
         itemCount: semesters.length,
 
-        itemBuilder: (context, index) {
+        itemBuilder: (context,index){
+
           final semester = semesters[index];
           final color = getColor(index);
 
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SubjectScreen(semester: semester),
-                ),
-              );
-            },
-
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(18),
+          final animation = Tween(
+            begin: const Offset(1,0),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: controller,
+              curve: Interval(
+                index * 0.08,
+                1,
+                curve: Curves.easeOut,
               ),
+            ),
+          );
 
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.school, color: Colors.white, size: 36),
+          return SlideTransition(
+            position: animation,
 
-                    const SizedBox(height: 10),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom:16),
 
-                    Text(
-                      "SEM $semester",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: InkWell(
+
+                borderRadius: BorderRadius.circular(30),
+
+                onTap: (){
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SubjectScreen(semester: semester),
                     ),
-                  ],
+                  );
+                },
+
+                child: Container(
+
+                  padding: const EdgeInsets.symmetric(
+                    horizontal:20,
+                    vertical:18,
+                  ),
+
+                  decoration: BoxDecoration(
+
+                    color: color.withOpacity(0.12),
+
+                    borderRadius: BorderRadius.circular(30),
+
+                    border: Border.all(
+                      color: color.withOpacity(0.4),
+                    ),
+                  ),
+
+                  child: Row(
+                    children: [
+
+                      Container(
+                        height:44,
+                        width:44,
+
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+
+                        child: Icon(
+                          Icons.school,
+                          color: color,
+                        ),
+                      ),
+
+                      const SizedBox(width:16),
+
+                      Expanded(
+                        child: Text(
+                          "Semester $semester",
+
+                          style: const TextStyle(
+                            fontSize:18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size:18,
+                        color: color,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

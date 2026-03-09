@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import 'semester_screen.dart';
 import 'upload_screen.dart';
 import 'package:ced25/screens/admins_screen.dart' as admin;
@@ -6,156 +7,212 @@ import 'package:ced25/screens/students_screen.dart' as student;
 import 'generate_code_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
+      backgroundColor: AppColors.background,
 
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.primaryText,
         title: const Text("Admin Dashboard"),
       ),
 
       body: Padding(
-
         padding: const EdgeInsets.all(20),
 
-        child: GridView.count(
-
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
 
           children: [
+            /// Welcome header
+            const Text(
+              "Welcome Admin 👋",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryText,
+              ),
+            ),
 
-  dashboardTile(
-    context,
-    "Browse Materials",
-    Icons.menu_book,
-    Colors.blue,
-    (){
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const SemesterScreen(),
-        ),
-      );
-    },
-  ),
+            const SizedBox(height: 4),
 
-  dashboardTile(
-    context,
-    "Upload Material",
-    Icons.upload,
-    Colors.orange,
-    (){
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const UploadScreen(
-  semester: 1,
-  subject: "General",
-),
-        ),
-      );
-    },
-  ),
-  dashboardTile(
-  context,
-  "Generate Code",
-  Icons.vpn_key,
-  Colors.red,
-  (){
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const GenerateCodeScreen(),
-      ),
-    );
-  },
-),
+            const Text(
+              "Manage study materials and students",
+              style: TextStyle(color: AppColors.secondaryText),
+            ),
 
-  dashboardTile(
-    context,
-    "Students",
-    Icons.people,
-    Colors.green,
-    (){
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const student.StudentsScreen(),
-        ),
-      );
-    },
-  ),
+            const SizedBox(height: 24),
 
-  dashboardTile(
-    context,
-    "Admins",
-    Icons.admin_panel_settings,
-    Colors.purple,
-    (){
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const admin.AdminsScreen(),
-        ),
-      );
-    },
-  ),
+            /// Grid
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
 
-]
+                children: [
+                  dashboardTile(
+                    context,
+                    "Browse Materials",
+                    Icons.menu_book,
+                    AppColors.primary,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SemesterScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  dashboardTile(
+                    context,
+                    "Upload Material",
+                    Icons.upload,
+                    AppColors.accent,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const UploadScreen(
+                            semester: 1,
+                            subject: "General",
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  dashboardTile(
+                    context,
+                    "Generate Code",
+                    Icons.vpn_key,
+                    AppColors.warning,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const GenerateCodeScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  dashboardTile(
+                    context,
+                    "Students",
+                    Icons.people,
+                    AppColors.success,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const student.StudentsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  dashboardTile(
+                    context,
+                    "Admins",
+                    Icons.admin_panel_settings,
+                    AppColors.secondary,
+                    () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const admin.AdminsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget dashboardTile(
-      BuildContext context,
-      String title,
-      IconData icon,
-      Color color,
-      VoidCallback onTap
-      ){
-
-    return GestureDetector(
-
+  BuildContext context,
+  String title,
+  IconData icon,
+  Color color,
+  VoidCallback onTap,
+) {
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(22),
       onTap: onTap,
 
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+
+        padding: const EdgeInsets.all(22),
 
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: color,width: 2),
+          color: color.withOpacity(0.08),
+
+          borderRadius: BorderRadius.circular(22),
+
+          border: Border.all(
+            color: color.withOpacity(0.25),
+          ),
+
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
 
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
 
-            Icon(
-              icon,
-              size: 40,
-              color: color,
+            /// Icon container
+            Container(
+              height: 50,
+              width: 50,
+
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(14),
+              ),
+
+              child: Icon(
+                icon,
+                color: color,
+                size: 26,
+              ),
             ),
 
-            const SizedBox(height:10),
+            const SizedBox(height: 14),
 
             Text(
               title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            )
+              textAlign: TextAlign.center,
 
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

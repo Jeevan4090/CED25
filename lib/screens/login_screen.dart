@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'semester_screen.dart';
@@ -29,6 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ).showSnackBar(const SnackBar(content: Text("Enter your name")));
       return;
     }
+
     if (code.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -36,7 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // check admin
     final admin = await supabase
         .from('admins')
         .select()
@@ -48,17 +49,16 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setString("access_code", code);
       await prefs.setString("name", name);
       await prefs.setBool("isLoggedIn", true);
+
       if (!mounted) return;
 
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
-
       return;
     }
 
-    // check student
     final student = await supabase
         .from('students')
         .select()
@@ -66,13 +66,11 @@ class _LoginScreenState extends State<LoginScreen> {
         .maybeSingle();
 
     if (student != null) {
-      // save student name in database
       await supabase
           .from('students')
           .update({"name": name})
           .eq('access_code', code);
 
-      // save login locally
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString("access_code", code);
       await prefs.setString("name", name);
@@ -84,9 +82,9 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(builder: (_) => const SemesterScreen()),
       );
-
       return;
     }
+
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
@@ -96,99 +94,149 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 255, 99, 232),
-              Color.fromARGB(255, 251, 195, 236),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+      backgroundColor: AppColors.background,
 
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-
-            child: Container(
-              padding: const EdgeInsets.all(24),
-
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "CED25",
-                    style: TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  const Text(
-                    "Engineering Study Materials",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  TextField(
-                    controller: nameController,
-
-                    decoration: InputDecoration(
-                      labelText: "Your Name",
-
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: codeController,
-
-                    decoration: InputDecoration(
-                      labelText: "Access Code",
-
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        await login();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        "Enter",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
+      body: Stack(
+        children: [
+          /// Soft gradient background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.secondary, AppColors.secondaryLight],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
-        ),
+
+          /// Center Glass Card
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+
+                  child: Container(
+                    width: 320,
+                    padding: const EdgeInsets.all(28),
+
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.65),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        /// App Title
+                        const Text(
+                          "CED25",
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        const Text(
+                          "Engineering Study Materials",
+                          style: TextStyle(
+                            color: AppColors.secondaryText,
+                            fontSize: 14,
+                          ),
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        /// Name Field
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.hoverSurface,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: TextField(
+                            controller: nameController,
+                            decoration: const InputDecoration(
+                              hintText: "Your Name",
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        /// Access Code Field
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.hoverSurface,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: TextField(
+                            controller: codeController,
+                            decoration: const InputDecoration(
+                              hintText: "Access Code",
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 26),
+
+                        /// Login Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 45,
+
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              await login();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.secondary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              "Enter",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
