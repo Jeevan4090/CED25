@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'subject_screen.dart';
@@ -80,11 +81,17 @@ class _SemesterScreenState extends State<SemesterScreen>
                     TextButton(
                       onPressed: () async {
 
+                        Navigator.pop(context);
+
                         await Supabase.instance.client.auth.signOut();
 
                         if (!context.mounted) return;
 
-                        Navigator.pushReplacementNamed(context, '/login');
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/login',
+                          (route) => false,
+                        );
                       },
                       child: const Text("Logout"),
                     ),
@@ -205,3 +212,4 @@ class _SemesterScreenState extends State<SemesterScreen>
     );
   }
 }
+

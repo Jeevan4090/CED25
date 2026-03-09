@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // NEW
 import '../theme/app_colors.dart';
 import 'semester_screen.dart';
 import 'upload_screen.dart';
@@ -8,6 +9,22 @@ import 'generate_code_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
+
+  /// LOGOUT FUNCTION
+  Future<void> logout(BuildContext context) async {
+
+    final supabase = Supabase.instance.client;
+
+    await supabase.auth.signOut();
+
+    if (!context.mounted) return;
+
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/login',
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +36,44 @@ class DashboardScreen extends StatelessWidget {
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.primaryText,
         title: const Text("Admin Dashboard"),
+
+        actions: [
+
+          /// LOGOUT BUTTON
+          IconButton(
+            icon: const Icon(Icons.logout),
+
+            onPressed: () async {
+
+              final confirm = await showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Logout"),
+                  content: const Text("Do you want to logout?"),
+                  actions: [
+
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text("Cancel"),
+                    ),
+
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text("Logout"),
+                    ),
+
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                logout(context);
+              }
+
+            },
+          ),
+
+        ],
       ),
 
       body: Padding(
@@ -28,7 +83,7 @@ class DashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
 
           children: [
-            /// Welcome header
+
             const Text(
               "Welcome Admin 👋",
               style: TextStyle(
@@ -47,7 +102,6 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            /// Grid
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -55,6 +109,7 @@ class DashboardScreen extends StatelessWidget {
                 mainAxisSpacing: 16,
 
                 children: [
+
                   dashboardTile(
                     context,
                     "Browse Materials",
@@ -142,77 +197,74 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget dashboardTile(
-  BuildContext context,
-  String title,
-  IconData icon,
-  Color color,
-  VoidCallback onTap,
-) {
-  return Material(
-    color: Colors.transparent,
-    child: InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: onTap,
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
 
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
 
-        padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(22),
 
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(22),
 
-          borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: color.withOpacity(0.25),
+            ),
 
-          border: Border.all(
-            color: color.withOpacity(0.25),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
 
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
 
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+              Container(
+                height: 50,
+                width: 50,
 
-            /// Icon container
-            Container(
-              height: 50,
-              width: 50,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
 
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(14),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 26,
+                ),
               ),
 
-              child: Icon(
-                icon,
-                color: color,
-                size: 26,
+              const SizedBox(height: 14),
+
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-
-            const SizedBox(height: 14),
-
-            Text(
-              title,
-              textAlign: TextAlign.center,
-
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

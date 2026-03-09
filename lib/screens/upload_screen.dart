@@ -23,8 +23,9 @@ class _UploadScreenState extends State<UploadScreen> {
 
   final titleController = TextEditingController();
 
-  String semester = "1";
-  String subject = "Mathematics";
+  late String semester;
+  late String subject;
+
   String type = "Notes";
 
   File? selectedFile;
@@ -32,13 +33,92 @@ class _UploadScreenState extends State<UploadScreen> {
 
   final semesters = ["1","2","3","4","5","6","7","8"];
 
-  final subjects = [
-    "Mathematics",
-    "Data Structures",
-    "DBMS",
-    "Operating Systems",
-    "Computer Networks"
-  ];
+  /// Semester wise subjects
+  final Map<String, List<String>> semesterSubjects = {
+
+  "1": [
+    "Linear Algebra & Calculus",
+    "Engineering Chemistry",
+    "Technical Communication",
+    "Programming & Data Structures",
+    "Design Thinking",
+    "PDS Lab",
+    "EAA (Sports/Yoga)"
+  ],
+
+  "2": [
+    "Laplace & Vector Calculus",
+    "Engineering Physics",
+    "Engineering Mechanics",
+    "Building Planning & Drawing",
+    "Biology for Engineers",
+    "Workshop Practice",
+    "Civil Engineering Materials",
+    "EAA II"
+  ],
+
+  "3": [
+    "Business Essentials",
+    "Surveying",
+    "Fluid Mechanics",
+    "Strength of Materials",
+    "Geotechnical Engineering",
+    "Surveying Lab",
+    "Geotechnical Lab"
+  ],
+
+  "4": [
+    "Fourier & PDE",
+    "Structural Mechanics",
+    "Hydrology & Irrigation",
+    "Steel Structure Design",
+    "Foundation Engineering",
+    "Fluid Mechanics Lab",
+    "SOM Lab"
+  ],
+
+  "5": [
+    "Environmental Engineering",
+    "Theory of Structures",
+    "Concrete Design",
+    "Highway Engineering",
+    "Professional Elective I",
+    "Fractal Course I",
+    "Environmental Lab",
+    "Concrete Lab"
+  ],
+
+  "6": [
+    "Construction Technology",
+    "Airport & Railway Engg",
+    "Professional Elective II",
+    "Professional Elective III",
+    "Product Development",
+    "Fractal Course II",
+    "Civil Software Lab",
+    "Transportation Lab"
+  ],
+
+  "7": [
+    "Hydraulic Structures",
+    "Professional Elective IV",
+    "Professional Elective V",
+    "Open Elective I",
+    "Quantity Survey Lab",
+    "RS & GIS Lab",
+    "Seminar & Technical Writing",
+    "Industrial Training",
+    "Minor Project"
+  ],
+
+  "8": [
+    "Professional Elective VI",
+    "Professional Elective VII",
+    "Professional Elective VIII",
+    "Major Project"
+  ],
+
+};
 
   final types = [
     "Notes",
@@ -47,6 +127,14 @@ class _UploadScreenState extends State<UploadScreen> {
     "Lab",
     "Important"
   ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    semester = widget.semester.toString();
+    subject = semesterSubjects[semester]!.first;
+  }
 
   Future<void> pickFile() async {
 
@@ -58,10 +146,8 @@ class _UploadScreenState extends State<UploadScreen> {
     if(result != null){
 
       setState(() {
-
         selectedFile = File(result.files.single.path!);
         fileName = result.files.single.name;
-
       });
 
     }
@@ -70,60 +156,61 @@ class _UploadScreenState extends State<UploadScreen> {
 
   void upload() async {
 
-  if(selectedFile == null){
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Select a file")),
-    );
-    return;
-  }
-
-  if(titleController.text.trim().isEmpty){
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Enter title")),
-    );
-    return;
-  }
-
-  final uploadService = UploadService();
-  final materialService = MaterialService();
-
-  try {
-
-    final fileUrl = await uploadService.uploadFile(
-      selectedFile!,
-      fileName!,
-    );
-
-    if(fileUrl == null){
-      throw Exception("Upload failed");
+    if(selectedFile == null){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select a file")),
+      );
+      return;
     }
 
-    await materialService.insertMaterial(
-      semester: widget.semester,
-      subject: widget.subject,
-      title: titleController.text.trim(),
-      type: type,
-      fileUrl: fileUrl,
-    );
+    if(titleController.text.trim().isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter title")),
+      );
+      return;
+    }
 
-    if(!mounted) return;
+    final uploadService = UploadService();
+    final materialService = MaterialService();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Upload successful")),
-    );
+    try {
 
-    Navigator.pop(context);
+      final fileUrl = await uploadService.uploadFile(
+        selectedFile!,
+        fileName!,
+      );
 
-  } catch (e) {
+      if(fileUrl == null){
+        throw Exception("Upload failed");
+      }
 
-    if(!mounted) return;
+      /// FIXED: use dropdown values instead of widget values
+      await materialService.insertMaterial(
+        semester: int.parse(semester),
+        subject: subject,
+        title: titleController.text.trim(),
+        type: type,
+        fileUrl: fileUrl,
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Upload error: $e")),
-    );
+      if(!mounted) return;
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Upload successful")),
+      );
+
+      Navigator.pop(context);
+
+    } catch (e) {
+
+      if(!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Upload error: $e")),
+      );
+
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -186,6 +273,7 @@ class _UploadScreenState extends State<UploadScreen> {
                 onChanged: (value){
                   setState(() {
                     semester = value!;
+                    subject = semesterSubjects[semester]!.first;
                   });
                 },
 
@@ -203,7 +291,7 @@ class _UploadScreenState extends State<UploadScreen> {
               DropdownButtonFormField(
                 value: subject,
 
-                items: subjects.map((e){
+                items: semesterSubjects[semester]!.map((e){
                   return DropdownMenuItem(
                     value: e,
                     child: Text(e),

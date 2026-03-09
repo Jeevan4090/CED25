@@ -1,3 +1,4 @@
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MaterialService {
@@ -25,7 +26,7 @@ class MaterialService {
   Future<List<Map<String, dynamic>>> fetchMaterials(
       int semester,
       String subject
-      ) async {
+  ) async {
 
     final response = await supabase
         .from('materials')
@@ -37,4 +38,37 @@ class MaterialService {
     return List<Map<String, dynamic>>.from(response);
 
   }
+
+  /// DELETE MATERIAL (file + database row)
+  Future<void> deleteMaterial(String id, String fileUrl) async {
+
+    try {
+
+      /// extract storage path from url
+      final uri = Uri.parse(fileUrl);
+
+      final filePath =
+          uri.pathSegments.sublist(uri.pathSegments.indexOf('materials') + 1)
+              .join('/');
+
+      /// delete file from storage bucket
+      await supabase.storage
+          .from('materials')
+          .remove([filePath]);
+
+      /// delete row from database
+      await supabase
+          .from('materials')
+          .delete()
+          .eq('id', id);
+
+    } catch (e) {
+
+      print("Delete material error: $e");
+
+    }
+
+  }
+
 }
+

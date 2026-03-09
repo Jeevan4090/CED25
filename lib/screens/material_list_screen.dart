@@ -19,7 +19,6 @@ class MaterialListScreen extends StatefulWidget {
 
 class _MaterialListScreenState extends State<MaterialListScreen>
     with SingleTickerProviderStateMixin {
-
   final materialService = MaterialService();
 
   late Future<List<Map<String, dynamic>>> materialsFuture;
@@ -55,15 +54,12 @@ class _MaterialListScreenState extends State<MaterialListScreen>
 
   /// SEARCH FUNCTION
   void filterMaterials(String query) {
-
     final results = allMaterials.where((material) {
-
       final title = material["title"].toString().toLowerCase();
       final type = material["type"].toString().toLowerCase();
 
       return title.contains(query.toLowerCase()) ||
           type.contains(query.toLowerCase());
-
     }).toList();
 
     setState(() {
@@ -85,9 +81,7 @@ class _MaterialListScreenState extends State<MaterialListScreen>
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(
         title: Text(widget.subject),
 
@@ -96,7 +90,6 @@ class _MaterialListScreenState extends State<MaterialListScreen>
             icon: const Icon(Icons.upload),
 
             onPressed: () async {
-
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -114,39 +107,25 @@ class _MaterialListScreenState extends State<MaterialListScreen>
       ),
 
       body: FutureBuilder<List<Map<String, dynamic>>>(
-
         future: materialsFuture,
 
         builder: (context, snapshot) {
-
           if (snapshot.connectionState == ConnectionState.waiting) {
-
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-
-            return const Center(
-              child: Text("Error loading materials"),
-            );
+            return const Center(child: Text("Error loading materials"));
           }
 
           final materials = snapshot.data ?? [];
 
           if (materials.isEmpty) {
-
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: const [
-
-                  Icon(
-                    Icons.folder_open,
-                    size: 60,
-                    color: Colors.grey,
-                  ),
+                  Icon(Icons.folder_open, size: 60, color: Colors.grey),
 
                   SizedBox(height: 10),
 
@@ -161,7 +140,6 @@ class _MaterialListScreenState extends State<MaterialListScreen>
 
           return Column(
             children: [
-
               /// SEARCH BAR
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -187,45 +165,55 @@ class _MaterialListScreenState extends State<MaterialListScreen>
 
               Expanded(
                 child: RefreshIndicator(
-
                   onRefresh: refreshMaterials,
 
                   child: ListView.builder(
-
                     padding: const EdgeInsets.all(16),
 
                     itemCount: filteredMaterials.length,
 
                     itemBuilder: (context, index) {
-
                       final material = filteredMaterials[index];
 
-                      final animation = Tween(
-                        begin: const Offset(0, 0.2),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: controller,
-                          curve: Interval(
-                            index * 0.08,
-                            1,
-                            curve: Curves.easeOut,
-                          ),
-                        ),
-                      );
+                      final animation =
+                          Tween(
+                            begin: const Offset(0, 0.2),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: controller,
+                              curve: Interval(
+                                index * 0.08,
+                                1,
+                                curve: Curves.easeOut,
+                              ),
+                            ),
+                          );
 
                       return FadeTransition(
-
                         opacity: controller,
 
                         child: SlideTransition(
-
                           position: animation,
 
                           child: MaterialTile(
                             title: material["title"],
                             type: material["type"],
                             fileUrl: material["file_url"],
+                            onDelete: () async {
+                              await MaterialService().deleteMaterial(
+                                material["id"],
+                                material["file_url"],
+                              );
+
+                              setState(() {
+                                materialsFuture = MaterialService()
+                                    .fetchMaterials(
+                                      widget.semester,
+                                      widget.subject,
+                                    );
+                              });
+                            },
                           ),
                         ),
                       );
