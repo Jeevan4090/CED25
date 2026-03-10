@@ -6,6 +6,7 @@ import 'upload_screen.dart';
 import 'package:ced25/screens/admins_screen.dart' as admin;
 import 'package:ced25/screens/students_screen.dart' as student;
 import 'generate_code_screen.dart';
+import 'analytics_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -187,6 +188,20 @@ class DashboardScreen extends StatelessWidget {
                       );
                     },
                   ),
+                  dashboardTile(
+  context,
+  "Analytics",
+  Icons.analytics,
+  AppColors.primary,
+  () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AnalyticsScreen(),
+      ),
+    );
+  },
+),
                 ],
               ),
             ),

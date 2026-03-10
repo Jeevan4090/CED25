@@ -8,16 +8,27 @@ class StudentsScreen extends StatefulWidget {
   State<StudentsScreen> createState() => _StudentsScreenState();
 }
 
-class _StudentsScreenState extends State<StudentsScreen> {
+class _StudentsScreenState extends State<StudentsScreen>
+    with SingleTickerProviderStateMixin {
 
   final supabase = Supabase.instance.client;
 
   late Future<List<Map<String, dynamic>>> studentsFuture;
 
+  late AnimationController controller;
+
   @override
   void initState() {
     super.initState();
+
     studentsFuture = getStudents();
+
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    controller.forward();
   }
 
   Future<List<Map<String, dynamic>>> getStudents() async {
@@ -69,10 +80,32 @@ class _StudentsScreenState extends State<StudentsScreen> {
           final students = snapshot.data ?? [];
 
           if(students.isEmpty){
-            return const Center(child: Text("No students yet"));
+
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+
+                  Icon(
+                    Icons.people_outline,
+                    size: 70,
+                    color: Colors.grey,
+                  ),
+
+                  SizedBox(height: 10),
+
+                  Text(
+                    "No students yet",
+                    style: TextStyle(fontSize: 16),
+                  )
+                ],
+              ),
+            );
           }
 
           return ListView.builder(
+
+            padding: const EdgeInsets.all(16),
 
             itemCount: students.length,
 
@@ -80,24 +113,107 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
               final student = students[index];
 
-              return ListTile(
-
-                title: Text(student["name"] ?? "No Name"),
-
-                subtitle: Text(student["access_code"]),
-
-                trailing: IconButton(
-
-                  icon: const Icon(Icons.delete, color: Colors.red),
-
-                  onPressed: () async {
-                    await deleteStudent(student["id"]);
-                  },
-
+              final animation = Tween(
+                begin: const Offset(0,0.2),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: controller,
+                  curve: Interval(
+                    index * 0.08,
+                    1,
+                    curve: Curves.easeOut,
+                  ),
                 ),
-
               );
 
+              return FadeTransition(
+
+                opacity: controller,
+
+                child: SlideTransition(
+
+                  position: animation,
+
+                  child: Container(
+
+                    margin: const EdgeInsets.only(bottom:14),
+
+                    padding: const EdgeInsets.all(16),
+
+                    decoration: BoxDecoration(
+
+                      color: Colors.white,
+
+                      borderRadius: BorderRadius.circular(16),
+
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0,4),
+                        )
+                      ],
+                    ),
+
+                    child: Row(
+                      children: [
+
+                        /// avatar
+                        const CircleAvatar(
+                          radius: 22,
+                          child: Icon(Icons.person),
+                        ),
+
+                        const SizedBox(width:14),
+
+                        /// name + code
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+
+                            children: [
+
+                              Text(
+                                student["name"] ?? "No Name",
+
+                                style: const TextStyle(
+                                  fontSize:16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(height:2),
+
+                              Text(
+                                "Code: ${student["access_code"]}",
+
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        /// delete button
+                        IconButton(
+
+                          icon: const Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                          ),
+
+                          onPressed: () async {
+                            await deleteStudent(student["id"]);
+                          },
+                        ),
+
+                      ],
+                    ),
+                  ),
+                ),
+              );
             },
           );
         },

@@ -1,8 +1,7 @@
-
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'subject_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'profile_screen.dart';
 
 class SemesterScreen extends StatefulWidget {
   const SemesterScreen({super.key});
@@ -59,47 +58,16 @@ class _SemesterScreenState extends State<SemesterScreen>
 
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-
+            icon: const Icon(Icons.person),
             onPressed: () {
-              showDialog(
-                context: context,
-
-                builder: (context) => AlertDialog(
-                  title: const Text("Logout"),
-                  content: const Text("Are you sure you want to logout?"),
-
-                  actions: [
-
-                    TextButton(
-                      onPressed: (){
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Cancel"),
-                    ),
-
-                    TextButton(
-                      onPressed: () async {
-
-                        Navigator.pop(context);
-
-                        await Supabase.instance.client.auth.signOut();
-
-                        if (!context.mounted) return;
-
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/login',
-                          (route) => false,
-                        );
-                      },
-                      child: const Text("Logout"),
-                    ),
-                  ],
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ProfileScreen(),
                 ),
               );
             },
-          )
+          ),
         ],
       ),
 
@@ -212,4 +180,3 @@ class _SemesterScreenState extends State<SemesterScreen>
     );
   }
 }
-
