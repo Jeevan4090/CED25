@@ -168,7 +168,7 @@ class DashboardScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const student.StudentsScreen(),
+                          builder: (_) => const student.StudentsScreen(isAdmin: true),
                         ),
                       );
                     },

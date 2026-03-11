@@ -146,7 +146,7 @@ class StudentDashboard extends StatelessWidget {
                       Icons.group,
                       const Color(0xffDDF5E8),
                       const Color(0xff2E9B66),
-                      const StudentsScreen(),
+                      const StudentsScreen(isAdmin: false),
                     ),
                   ],
                 ),

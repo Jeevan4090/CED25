@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentsScreen extends StatefulWidget {
-  const StudentsScreen({super.key});
+
+  final bool isAdmin;
+
+  const StudentsScreen({
+    super.key,
+    this.isAdmin = false,
+  });
 
   @override
   State<StudentsScreen> createState() => _StudentsScreenState();
@@ -51,7 +57,6 @@ class _StudentsScreenState extends State<StudentsScreen>
     setState(() {
       studentsFuture = getStudents();
     });
-
   }
 
   @override
@@ -196,19 +201,19 @@ class _StudentsScreenState extends State<StudentsScreen>
                           ),
                         ),
 
-                        /// delete button
-                        IconButton(
+                        /// delete button (ADMIN ONLY)
+                        if (widget.isAdmin)
+                          IconButton(
 
-                          icon: const Icon(
-                            Icons.delete,
-                            color: Colors.red,
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                            ),
+
+                            onPressed: () async {
+                              await deleteStudent(student["id"]);
+                            },
                           ),
-
-                          onPressed: () async {
-                            await deleteStudent(student["id"]);
-                          },
-                        ),
-
                       ],
                     ),
                   ),
@@ -220,4 +225,4 @@ class _StudentsScreenState extends State<StudentsScreen>
       ),
     );
   }
-} 
+}
