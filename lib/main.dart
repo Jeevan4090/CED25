@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'config/supabase_config.dart';
 import 'screens/login_screen.dart';
 import 'screens/semester_screen.dart';
+import 'screens/dashboard_screen.dart';
 
 Future<void> main() async {
 
@@ -22,11 +23,11 @@ class Ced25App extends StatelessWidget {
 
   const Ced25App({super.key});
 
-  Future<bool> checkLogin() async {
+  Future<String?> getUserRole() async {
 
     final prefs = await SharedPreferences.getInstance();
 
-    return prefs.getBool("isLoggedIn") ?? false;
+    return prefs.getString("role");
 
   }
 
@@ -42,31 +43,31 @@ class Ced25App extends StatelessWidget {
         primarySwatch: Colors.deepPurple,
       ),
 
-      home: FutureBuilder(
+      home: FutureBuilder<String?>(
+  future: getUserRole(),
+  builder: (context, snapshot) {
 
-        future: checkLogin(),
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
-        builder: (context, snapshot) {
+    final role = snapshot.data;
 
-          if(!snapshot.hasData){
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
+    if (role == "student") {
+      return const SemesterScreen();
+    }
 
-          if(snapshot.data == true){
-            return const SemesterScreen();
-          }
+    if (role == "admin") {
+      return const DashboardScreen();
+    }
 
-          return const LoginScreen();
-
-        },
-
-      ),
-
+    return const LoginScreen();
+  },
+),
     );
-
   }
 }
