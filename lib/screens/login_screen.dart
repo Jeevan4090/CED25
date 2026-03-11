@@ -1,10 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import 'semester_screen.dart';
+
 import 'dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'student_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,9 +54,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(builder: (_) => const DashboardScreen()),
-);
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
       return;
     }
 
@@ -80,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const SemesterScreen()),
+        MaterialPageRoute(builder: (_) => const StudentDashboard()),
       );
       return;
     }
@@ -211,6 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           child: ElevatedButton(
                             onPressed: () async {
+                              FocusScope.of(context).unfocus();
                               await login();
                             },
                             style: ElevatedButton.styleFrom(

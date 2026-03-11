@@ -1,18 +1,18 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/upload_service.dart';
 import '../services/material_service.dart';
 
 class UploadScreen extends StatefulWidget {
-
-  final int semester;
-  final String subject;
+  final int? semester;
+  final String? subject;
 
   const UploadScreen({
     super.key,
-    required this.semester,
-    required this.subject
+    this.semester,
+    this.subject,
   });
 
   @override
@@ -31,94 +31,94 @@ class _UploadScreenState extends State<UploadScreen> {
   File? selectedFile;
   String? fileName;
 
+  bool isUploading = false;
+
   final semesters = ["1","2","3","4","5","6","7","8"];
 
-  /// Semester wise subjects
   final Map<String, List<String>> semesterSubjects = {
 
-  "1": [
-    "Linear Algebra & Calculus",
-    "Engineering Chemistry",
-    "Technical Communication",
-    "Programming & Data Structures",
-    "Design Thinking",
-    "PDS Lab",
-    "EAA (Sports/Yoga)"
-  ],
+    "1": [
+      "Linear Algebra & Calculus",
+      "Engineering Chemistry",
+      "Technical Communication",
+      "Programming & Data Structures",
+      "Design Thinking",
+      "PDS Lab",
+      "EAA (Sports/Yoga)"
+    ],
 
-  "2": [
-    "Laplace & Vector Calculus",
-    "Engineering Physics",
-    "Engineering Mechanics",
-    "Building Planning & Drawing",
-    "Biology for Engineers",
-    "Workshop Practice",
-    "Civil Engineering Materials",
-    "EAA II"
-  ],
+    "2": [
+      "Laplace & Vector Calculus",
+      "Engineering Physics",
+      "Engineering Mechanics",
+      "Building Planning & Drawing",
+      "Biology for Engineers",
+      "Workshop Practice",
+      "Civil Engineering Materials",
+      "EAA II"
+    ],
 
-  "3": [
-    "Business Essentials",
-    "Surveying",
-    "Fluid Mechanics",
-    "Strength of Materials",
-    "Geotechnical Engineering",
-    "Surveying Lab",
-    "Geotechnical Lab"
-  ],
+    "3": [
+      "Business Essentials",
+      "Surveying",
+      "Fluid Mechanics",
+      "Strength of Materials",
+      "Geotechnical Engineering",
+      "Surveying Lab",
+      "Geotechnical Lab"
+    ],
 
-  "4": [
-    "Fourier & PDE",
-    "Structural Mechanics",
-    "Hydrology & Irrigation",
-    "Steel Structure Design",
-    "Foundation Engineering",
-    "Fluid Mechanics Lab",
-    "SOM Lab"
-  ],
+    "4": [
+      "Fourier & PDE",
+      "Structural Mechanics",
+      "Hydrology & Irrigation",
+      "Steel Structure Design",
+      "Foundation Engineering",
+      "Fluid Mechanics Lab",
+      "SOM Lab"
+    ],
 
-  "5": [
-    "Environmental Engineering",
-    "Theory of Structures",
-    "Concrete Design",
-    "Highway Engineering",
-    "Professional Elective I",
-    "Fractal Course I",
-    "Environmental Lab",
-    "Concrete Lab"
-  ],
+    "5": [
+      "Environmental Engineering",
+      "Theory of Structures",
+      "Concrete Design",
+      "Highway Engineering",
+      "Professional Elective I",
+      "Fractal Course I",
+      "Environmental Lab",
+      "Concrete Lab"
+    ],
 
-  "6": [
-    "Construction Technology",
-    "Airport & Railway Engg",
-    "Professional Elective II",
-    "Professional Elective III",
-    "Product Development",
-    "Fractal Course II",
-    "Civil Software Lab",
-    "Transportation Lab"
-  ],
+    "6": [
+      "Construction Technology",
+      "Airport & Railway Engg",
+      "Professional Elective II",
+      "Professional Elective III",
+      "Product Development",
+      "Fractal Course II",
+      "Civil Software Lab",
+      "Transportation Lab"
+    ],
 
-  "7": [
-    "Hydraulic Structures",
-    "Professional Elective IV",
-    "Professional Elective V",
-    "Open Elective I",
-    "Quantity Survey Lab",
-    "RS & GIS Lab",
-    "Seminar & Technical Writing",
-    "Industrial Training",
-    "Minor Project"
-  ],
+    "7": [
+      "Hydraulic Structures",
+      "Professional Elective IV",
+      "Professional Elective V",
+      "Open Elective I",
+      "Quantity Survey Lab",
+      "RS & GIS Lab",
+      "Seminar & Technical Writing",
+      "Industrial Training",
+      "Minor Project"
+    ],
 
-  "8": [
-    "Professional Elective VI",
-    "Professional Elective VII",
-    "Professional Elective VIII",
-    "Major Project"
-  ],
-
-};
+    "8": [
+      "Professional Elective VI",
+      "Professional Elective VII",
+      "Professional Elective VIII",
+      "Major Project"
+    ],
+  };
 
   final types = [
     "Notes",
@@ -132,8 +132,8 @@ class _UploadScreenState extends State<UploadScreen> {
   void initState() {
     super.initState();
 
-    semester = widget.semester.toString();
-    subject = semesterSubjects[semester]!.first;
+    semester = widget.semester?.toString() ?? "1";
+    subject = widget.subject ?? semesterSubjects[semester]!.first;
   }
 
   Future<void> pickFile() async {
@@ -144,17 +144,14 @@ class _UploadScreenState extends State<UploadScreen> {
     );
 
     if(result != null){
-
       setState(() {
         selectedFile = File(result.files.single.path!);
         fileName = result.files.single.name;
       });
-
     }
-
   }
 
-  void upload() async {
+  Future<void> upload() async {
 
     if(selectedFile == null){
       ScaffoldMessenger.of(context).showSnackBar(
@@ -170,10 +167,17 @@ class _UploadScreenState extends State<UploadScreen> {
       return;
     }
 
+    setState(() {
+      isUploading = true;
+    });
+
     final uploadService = UploadService();
     final materialService = MaterialService();
 
     try {
+
+      final prefs = await SharedPreferences.getInstance();
+      final name = prefs.getString("name") ?? "Unknown";
 
       final fileUrl = await uploadService.uploadFile(
         selectedFile!,
@@ -184,16 +188,20 @@ class _UploadScreenState extends State<UploadScreen> {
         throw Exception("Upload failed");
       }
 
-      /// FIXED: use dropdown values instead of widget values
       await materialService.insertMaterial(
         semester: int.parse(semester),
         subject: subject,
         title: titleController.text.trim(),
         type: type,
         fileUrl: fileUrl,
+        uploadedBy: name,
       );
 
       if(!mounted) return;
+
+      setState(() {
+        isUploading = false;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Upload successful")),
@@ -205,10 +213,13 @@ class _UploadScreenState extends State<UploadScreen> {
 
       if(!mounted) return;
 
+      setState(() {
+        isUploading = false;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Upload error: $e")),
       );
-
     }
   }
 
@@ -221,191 +232,217 @@ class _UploadScreenState extends State<UploadScreen> {
         title: const Text("Upload Material"),
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: Stack(
+        children: [
 
-        child: Container(
+          Padding(
+            padding: const EdgeInsets.all(16),
 
-          padding: const EdgeInsets.all(20),
+            child: Container(
 
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+              padding: const EdgeInsets.all(20),
 
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0,4),
-              )
-            ],
-          ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
 
-          child: ListView(
-
-            children: [
-
-              /// Title
-              TextField(
-                controller: titleController,
-
-                decoration: InputDecoration(
-                  labelText: "Material Title",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0,4),
+                  )
+                ],
               ),
 
-              const SizedBox(height:20),
+              child: ListView(
 
-              /// Semester
-              DropdownButtonFormField(
-                value: semester,
+                children: [
 
-                items: semesters.map((e){
-                  return DropdownMenuItem(
-                    value: e,
-                    child: Text("Semester $e"),
-                  );
-                }).toList(),
-
-                onChanged: (value){
-                  setState(() {
-                    semester = value!;
-                    subject = semesterSubjects[semester]!.first;
-                  });
-                },
-
-                decoration: InputDecoration(
-                  labelText: "Semester",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height:20),
-
-              /// Subject
-              DropdownButtonFormField(
-                value: subject,
-
-                items: semesterSubjects[semester]!.map((e){
-                  return DropdownMenuItem(
-                    value: e,
-                    child: Text(e),
-                  );
-                }).toList(),
-
-                onChanged: (value){
-                  setState(() {
-                    subject = value!;
-                  });
-                },
-
-                decoration: InputDecoration(
-                  labelText: "Subject",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height:20),
-
-              /// Type
-              DropdownButtonFormField(
-                value: type,
-
-                items: types.map((e){
-                  return DropdownMenuItem(
-                    value: e,
-                    child: Text(e),
-                  );
-                }).toList(),
-
-                onChanged: (value){
-                  setState(() {
-                    type = value!;
-                  });
-                },
-
-                decoration: InputDecoration(
-                  labelText: "Material Type",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height:25),
-
-              /// File selector
-              InkWell(
-                onTap: pickFile,
-
-                borderRadius: BorderRadius.circular(12),
-
-                child: Container(
-
-                  padding: const EdgeInsets.symmetric(vertical:16),
-
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.attach_file),
-                      SizedBox(width:8),
-                      Text("Select File"),
-                    ],
-                  ),
-                ),
-              ),
-
-              if(fileName != null)
-                Padding(
-                  padding: const EdgeInsets.only(top:10),
-                  child: Text(
-                    "Selected: $fileName",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-
-              const SizedBox(height:30),
-
-              /// Upload button
-              SizedBox(
-                width: double.infinity,
-
-                child: ElevatedButton(
-
-                  onPressed: upload,
-
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical:16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  TextField(
+                    controller: titleController,
+                    decoration: InputDecoration(
+                      labelText: "Material Title",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
 
-                  child: const Text(
-                    "Upload Material",
-                    style: TextStyle(fontSize:16),
+                  const SizedBox(height:20),
+
+                  DropdownButtonFormField(
+                    value: semester,
+
+                    items: semesters.map((e){
+                      return DropdownMenuItem(
+                        value: e,
+                        child: Text("Semester $e"),
+                      );
+                    }).toList(),
+
+                    onChanged: (value){
+                      setState(() {
+                        semester = value!;
+                        subject = semesterSubjects[semester]?.first ?? "";
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: "Semester",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
+
+                  const SizedBox(height:20),
+
+                  DropdownButtonFormField(
+                    value: subject,
+
+                    items: (semesterSubjects[semester] ?? []).map((e){
+                      return DropdownMenuItem(
+                        value: e,
+                        child: Text(e),
+                      );
+                    }).toList(),
+
+                    onChanged: (value){
+                      setState(() {
+                        subject = value!;
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: "Subject",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height:20),
+
+                  DropdownButtonFormField(
+                    value: type,
+
+                    items: types.map((e){
+                      return DropdownMenuItem(
+                        value: e,
+                        child: Text(e),
+                      );
+                    }).toList(),
+
+                    onChanged: (value){
+                      setState(() {
+                        type = value!;
+                      });
+                    },
+
+                    decoration: InputDecoration(
+                      labelText: "Material Type",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height:25),
+
+                  InkWell(
+                    onTap: pickFile,
+
+                    borderRadius: BorderRadius.circular(12),
+
+                    child: Container(
+
+                      padding: const EdgeInsets.symmetric(vertical:16),
+
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.attach_file),
+                          SizedBox(width:8),
+                          Text("Select File"),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  if(fileName != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top:10),
+                      child: Text(
+                        "Selected: $fileName",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height:30),
+
+                  SizedBox(
+                    width: double.infinity,
+
+                    child: ElevatedButton(
+
+                      onPressed: isUploading ? null : upload,
+
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical:16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+
+                      child: const Text(
+                        "Upload Material",
+                        style: TextStyle(fontSize:16),
+                      ),
+                    ),
+                  ),
+
+                ],
+              ),
+            ),
+          ),
+
+          if (isUploading)
+            Container(
+              color: Colors.black.withOpacity(0.35),
+
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+
+                    CircularProgressIndicator(),
+
+                    SizedBox(height:12),
+
+                    Text(
+                      "Uploading file...",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize:16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                  ],
                 ),
               ),
+            ),
 
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

@@ -1,4 +1,3 @@
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MaterialService {
@@ -11,6 +10,7 @@ class MaterialService {
     required String title,
     required String type,
     required String fileUrl,
+    required String uploadedBy,
   }) async {
 
     await supabase.from('materials').insert({
@@ -19,6 +19,7 @@ class MaterialService {
       "title": title,
       "type": type,
       "file_url": fileUrl,
+      "uploaded_by": uploadedBy,
     });
 
   }
@@ -44,19 +45,19 @@ class MaterialService {
 
     try {
 
-      /// extract storage path from url
       final uri = Uri.parse(fileUrl);
 
       final filePath =
-          uri.pathSegments.sublist(uri.pathSegments.indexOf('materials') + 1)
+          uri.pathSegments
+              .sublist(uri.pathSegments.indexOf('materials') + 1)
               .join('/');
 
-      /// delete file from storage bucket
+      /// delete file from storage
       await supabase.storage
           .from('materials')
           .remove([filePath]);
 
-      /// delete row from database
+      /// delete database row
       await supabase
           .from('materials')
           .delete()
@@ -71,4 +72,3 @@ class MaterialService {
   }
 
 }
-

@@ -200,6 +200,8 @@ class _MaterialListScreenState extends State<MaterialListScreen>
                             title: material["title"],
                             type: material["type"],
                             fileUrl: material["file_url"],
+                            uploadedBy: material["uploaded_by"],
+                            createdAt: material["created_at"], // NEW
                             onDelete: () async {
                               await MaterialService().deleteMaterial(
                                 material["id"],

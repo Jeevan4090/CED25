@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 import '../screens/pdf_viewer_screen.dart';
 import '../screens/file_viewer_screen.dart';
 
@@ -8,49 +7,19 @@ class MaterialTile extends StatelessWidget {
   final String title;
   final String type;
   final String fileUrl;
-  final VoidCallback? onDelete;   // NEW
+  final String? uploadedBy;
+  final String? createdAt;
+  final VoidCallback? onDelete;
 
   const MaterialTile({
-  super.key,
-  required this.title,
-  required this.type,
-  required this.fileUrl,
-  this.onDelete,
-});
-
-  Color getColor() {
-    switch (type) {
-      case "Notes":
-        return AppColors.notes;
-      case "PYQ":
-        return AppColors.pyq;
-      case "Assignment":
-        return AppColors.assignment;
-      case "Lab":
-        return AppColors.lab;
-      case "Important":
-        return AppColors.important;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData getIcon() {
-    switch (type) {
-      case "Notes":
-        return Icons.menu_book;
-      case "PYQ":
-        return Icons.history_edu;
-      case "Assignment":
-        return Icons.assignment;
-      case "Lab":
-        return Icons.science;
-      case "Important":
-        return Icons.star;
-      default:
-        return Icons.insert_drive_file;
-    }
-  }
+    super.key,
+    required this.title,
+    required this.type,
+    required this.fileUrl,
+    this.uploadedBy,
+    this.createdAt,
+    this.onDelete,
+  });
 
   Future<void> openFile(BuildContext context) async {
 
@@ -76,7 +45,6 @@ class MaterialTile extends StatelessWidget {
           builder: (_) => FileViewerScreen(fileUrl: fileUrl),
         ),
       );
-
     }
   }
 
@@ -111,66 +79,60 @@ class MaterialTile extends StatelessWidget {
     );
   }
 
+  /// Format date like 11 Mar
+  String formatDate(String? date) {
+    if (date == null) return "";
+
+    final dt = DateTime.parse(date);
+
+    const months = [
+      "Jan","Feb","Mar","Apr","May","Jun",
+      "Jul","Aug","Sep","Oct","Nov","Dec"
+    ];
+
+    return "${dt.day} ${months[dt.month - 1]}";
+  }
+
   @override
   Widget build(BuildContext context) {
 
-    final color = getColor();
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 12),
 
       child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        elevation: 2,
 
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-
+          borderRadius: BorderRadius.circular(14),
           onTap: () => openFile(context),
 
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-
-            padding: const EdgeInsets.all(18),
-
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.10),
-              borderRadius: BorderRadius.circular(18),
-
-              border: Border.all(
-                color: color.withOpacity(0.35),
-                width: 1.5,
-              ),
-
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
 
             child: Row(
               children: [
 
+                /// File Icon
                 Container(
                   height: 42,
                   width: 42,
 
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.20),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
                   ),
 
-                  child: Icon(
-                    getIcon(),
-                    color: color,
+                  child: const Icon(
+                    Icons.insert_drive_file,
+                    color: Colors.grey,
                   ),
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
 
+                /// Title + details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,25 +141,25 @@ class MaterialTile extends StatelessWidget {
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
 
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
 
                       Text(
-                        type,
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w600,
+                        "$type • ${uploadedBy ?? "Unknown"} • ${formatDate(createdAt)}",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
 
-                /// DELETE BUTTON (NEW)
+                /// Delete button
                 if (onDelete != null)
                   IconButton(
                     icon: const Icon(
@@ -207,10 +169,10 @@ class MaterialTile extends StatelessWidget {
                     onPressed: () => confirmDelete(context),
                   ),
 
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 18,
-                  color: color,
+                const Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: Colors.grey,
                 ),
               ],
             ),
