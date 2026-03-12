@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/upload_service.dart';
-import '../services/material_service.dart';
 
 class UploadScreen extends StatefulWidget {
   final int? semester;
@@ -172,28 +171,19 @@ class _UploadScreenState extends State<UploadScreen> {
     });
 
     final uploadService = UploadService();
-    final materialService = MaterialService();
 
     try {
 
       final prefs = await SharedPreferences.getInstance();
       final name = prefs.getString("name") ?? "Unknown";
 
-      final fileUrl = await uploadService.uploadFile(
-        selectedFile!,
-        fileName!,
-      );
-
-      if(fileUrl == null){
-        throw Exception("Upload failed");
-      }
-
-      await materialService.insertMaterial(
-        semester: int.parse(semester),
-        subject: subject,
+      await uploadService.uploadMaterial(
+        file: selectedFile!,
+        fileName: fileName!,
         title: titleController.text.trim(),
+        subject: subject,
+        semester: int.parse(semester),
         type: type,
-        fileUrl: fileUrl,
         uploadedBy: name,
       );
 
@@ -364,9 +354,9 @@ class _UploadScreenState extends State<UploadScreen> {
                         border: Border.all(color: Colors.grey.shade300),
                       ),
 
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(Icons.attach_file),
                           SizedBox(width:8),
                           Text("Select File"),

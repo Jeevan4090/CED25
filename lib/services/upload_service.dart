@@ -5,28 +5,50 @@ class UploadService {
 
   final supabase = Supabase.instance.client;
 
-  Future<String?> uploadFile(File file, String fileName) async {
+  Future<bool> uploadMaterial({
+    required File file,
+    required String fileName,
+    required String title,
+    required String subject,
+    required int semester,
+    required String type,        // added
+    required String uploadedBy,
+  }) async {
 
     try {
 
-      final path = "materials/$fileName";
+      /// generate unique file path (prevents overwrite)
+      final path =
+          "materials/${DateTime.now().millisecondsSinceEpoch}_$fileName";
 
+      /// upload file to storage
       await supabase.storage
           .from("materials")
-          .upload(path, file);
+          .upload(path, file, fileOptions: const FileOptions(upsert: true));
 
-      final publicUrl = supabase.storage
-          .from("materials")
-          .getPublicUrl(path);
+      final publicUrl =
+          supabase.storage.from("materials").getPublicUrl(path);
 
-      return publicUrl;
+      /// insert record into database
+      await supabase.from("materials").insert({
+
+        "title": title,
+        "subject": subject,
+        "semester": semester,
+        "type": type,                // fixed
+        "uploaded_by": uploadedBy,
+        "file_url": publicUrl,
+        "created_at": DateTime.now().toIso8601String()
+
+      });
+
+      return true;
 
     } catch (e) {
 
       print("Upload error: $e");
-      return null;
+      return false;
 
     }
-
   }
 }

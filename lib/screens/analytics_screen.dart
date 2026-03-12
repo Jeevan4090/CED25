@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 
 class AnalyticsScreen extends StatefulWidget {
@@ -19,12 +21,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   int uploadsThisWeek = 0;
 
   List<int> semesterCounts = List.filled(8, 0);
+  List<int> weeklyUploads = List.filled(7, 0);
 
-  String mostSubject = "";
-  int mostSubjectCount = 0;
-
-  List<Map<String, dynamic>> topContributors = [];
   List<Map<String, dynamic>> recentUploads = [];
+  List<Map<String, dynamic>> topUploaders = [];
+
+  final List<Color> chartColors = const [
+    Color(0xff4CAF50),
+    Color(0xff2196F3),
+    Color(0xffFF9800),
+    Color(0xff9C27B0),
+    Color(0xffF44336),
+    Color(0xff00BCD4),
+    Color(0xffFFC107),
+    Color(0xff3F51B5),
+  ];
 
   @override
   void initState() {
@@ -34,146 +45,268 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Future<void> loadAnalytics() async {
 
-  /// TOTAL STUDENTS (from students table)
-  final students = await supabase
-      .from('students')
-      .select();
+    final students = await supabase.from('students').select();
+    final materials = await supabase.from('materials').select();
 
-  /// MATERIALS
-  final materials = await supabase
-      .from('materials')
-      .select();
+    int uploadsWeek = 0;
+    List<int> semCounts = List.filled(8, 0);
+    List<int> weekCounts = List.filled(7, 0);
 
-  DateTime now = DateTime.now();
+    Map<String,int> uploaderMap = {};
 
-  Map<String, int> contributorMap = {};
-  Map<String, int> subjectMap = {};
+    DateTime now = DateTime.now();
 
-  for (var item in materials) {
+    for (var item in materials) {
 
-    /// uploads this week
-    DateTime created = DateTime.parse(item['created_at']);
-    if (now.difference(created).inDays < 7) {
-      uploadsThisWeek++;
+      DateTime created =
+          DateTime.tryParse(item['created_at']?.toString() ?? '')
+          ?? DateTime.now();
+
+      int diff = now.difference(created).inDays;
+
+      if(diff < 7){
+        uploadsWeek++;
+        weekCounts[6 - diff] += 1;
+      }
+
+      int sem =
+          int.tryParse(item['semester']?.toString() ?? '') ?? 0;
+
+      if (sem >= 1 && sem <= 8) {
+        semCounts[sem - 1]++;
+      }
+
+      String uploader =
+          item['uploaded_by']?.toString() ?? "Unknown";
+
+      uploaderMap[uploader] =
+          (uploaderMap[uploader] ?? 0) + 1;
     }
 
-    /// semester distribution
-    int sem = item['semester'];
-    if (sem >= 1 && sem <= 8) {
-      semesterCounts[sem - 1]++;
+    List<Map<String,dynamic>> uploaders = [];
+
+    var sorted = uploaderMap.entries.toList()
+      ..sort((a,b)=> b.value.compareTo(a.value));
+
+    for(int i=0;i<sorted.length && i<3;i++){
+      uploaders.add({
+        "name": sorted[i].key,
+        "uploads": sorted[i].value
+      });
     }
 
-    /// contributor counts
-    final uploader = item['uploaded_by'];
-    contributorMap[uploader] = (contributorMap[uploader] ?? 0) + 1;
+    final recent = await supabase
+        .from('materials')
+        .select('title,created_at')
+        .order('created_at', ascending: false)
+        .limit(5);
 
-    /// subject counts
-    String subject = item['subject'];
-    subjectMap[subject] = (subjectMap[subject] ?? 0) + 1;
-  }
+    setState(() {
 
-  /// sort contributors
-  List<MapEntry<String, int>> sorted =
-      contributorMap.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
+      totalStudents = students.length;
+      totalMaterials = materials.length;
+      totalUploads = materials.length;
+      uploadsThisWeek = uploadsWeek;
 
-  List<Map<String, dynamic>> contributors = [];
+      semesterCounts = semCounts;
+      weeklyUploads = weekCounts;
 
-  for (int i = 0; i < sorted.length && i < 3; i++) {
+      recentUploads =
+          List<Map<String,dynamic>>.from(recent);
 
-    String uploaderId = sorted[i].key;
-
-    /// Try finding in students table
-    var student = await supabase
-        .from('students')
-        .select('name')
-        .eq('id', uploaderId)
-        .maybeSingle();
-
-    String name;
-
-    if (student != null) {
-      name = student['name'];
-    } else {
-
-      /// Otherwise check admins table
-      var admin = await supabase
-          .from('admins')
-          .select('name')
-          .eq('id', uploaderId)
-          .maybeSingle();
-
-      name = admin?['name'] ?? "Unknown";
-    }
-
-    contributors.add({
-      "name": name,
-      "uploads": sorted[i].value
+      topUploaders = uploaders;
     });
   }
 
-  /// most uploaded subject
-  var sortedSubjects = subjectMap.entries.toList()
-    ..sort((a, b) => b.value.compareTo(a.value));
-
-  if (sortedSubjects.isNotEmpty) {
-    mostSubject = sortedSubjects.first.key;
-    mostSubjectCount = sortedSubjects.first.value;
+  Widget animatedNumber(int value) {
+    return TweenAnimationBuilder(
+      tween: IntTween(begin: 0, end: value),
+      duration: const Duration(milliseconds: 700),
+      builder: (context, val, child) {
+        return Text(
+          "$val",
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        );
+      },
+    );
   }
 
-  /// recent uploads
-  final recent = await supabase
-      .from('materials')
-      .select('title, created_at')
-      .order('created_at', ascending: false)
-      .limit(5);
-
-  setState(() {
-
-    totalStudents = students.length;
-    totalMaterials = materials.length;
-    totalUploads = materials.length;
-
-    topContributors = contributors;
-    recentUploads = List<Map<String, dynamic>>.from(recent);
-
-  });
-}
-
-  Widget analyticsCard(String title, int value, IconData icon) {
+  Widget statCard(String title, int value, IconData icon, Color color) {
 
     return Container(
-      padding: const EdgeInsets.all(20),
-
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(18),
-
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.2),
+        gradient: LinearGradient(
+          colors: [
+            color.withOpacity(.9),
+            color.withOpacity(.5),
+          ],
         ),
+        borderRadius: BorderRadius.circular(16),
       ),
 
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          Icon(icon, color: AppColors.primary, size: 28),
+          Icon(icon,color: Colors.white),
 
-          const SizedBox(height: 10),
+          const Spacer(),
+
+          animatedNumber(value),
 
           Text(
-            value.toString(),
+            title,
             style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontWeight: FontWeight.w500),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget semesterBarChart() {
+
+    double maxY = semesterCounts.reduce((a,b)=> a>b?a:b).toDouble() + 1;
+
+    return SizedBox(
+      height: 260,
+
+      child: BarChart(
+
+        BarChartData(
+
+          maxY: maxY,
+
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+          ),
+
+          borderData: FlBorderData(show:false),
+
+          titlesData: FlTitlesData(
+
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  return Text("S${value.toInt()}");
+                },
+              ),
+            ),
+
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(showTitles: true),
             ),
           ),
 
-          const SizedBox(height: 4),
+          barGroups: List.generate(8, (i){
 
-          Text(title),
-        ],
+            return BarChartGroupData(
+
+              x: i+1,
+
+              barRods: [
+
+                BarChartRodData(
+
+                  toY: semesterCounts[i].toDouble(),
+
+                  width: 18,
+
+                  borderRadius: BorderRadius.circular(8),
+
+                  gradient: LinearGradient(
+                    colors: [
+                      chartColors[i],
+                      chartColors[i].withOpacity(.6)
+                    ],
+                  ),
+                )
+              ],
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget uploadTrendChart(){
+
+    return SizedBox(
+      height:240,
+
+      child: LineChart(
+
+        LineChartData(
+
+          gridData: FlGridData(show:true),
+
+          borderData: FlBorderData(show:false),
+
+          titlesData: FlTitlesData(
+
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles:true,
+                getTitlesWidget:(value,meta){
+
+                  const days = ["M","T","W","T","F","S","S"];
+
+                  int i = value.toInt();
+
+                  if(i<0 || i>=7) return const SizedBox();
+
+                  return Text(days[i]);
+                },
+              ),
+            ),
+
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(showTitles:true),
+            ),
+          ),
+
+          lineBarsData: [
+
+            LineChartBarData(
+
+              spots: List.generate(7,(i){
+                return FlSpot(
+                    i.toDouble(),
+                    weeklyUploads[i].toDouble());
+              }),
+
+              isCurved:true,
+              barWidth:3,
+
+              gradient: const LinearGradient(
+                  colors:[
+                    Color(0xff2196F3),
+                    Color(0xff00BCD4)
+                  ]
+              ),
+
+              dotData: FlDotData(show:true),
+
+              belowBarData: BarAreaData(
+                show:true,
+                gradient: LinearGradient(
+                  colors:[
+                    Colors.blue.withOpacity(.3),
+                    Colors.transparent
+                  ],
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -189,6 +322,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         title: const Text("Analytics"),
         backgroundColor: AppColors.background,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: loadAnalytics,
+          )
+        ],
       ),
 
       body: SingleChildScrollView(
@@ -201,9 +340,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           children: [
 
             const Text(
-              "App Analytics",
+              "Dashboard",
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -213,91 +352,103 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
               physics: const NeverScrollableScrollPhysics(),
 
               children: [
 
-                analyticsCard(
-                    "Students", totalStudents, Icons.people),
+                statCard(
+                    "Students",
+                    totalStudents,
+                    Icons.people,
+                    chartColors[0]),
 
-                analyticsCard(
-                    "Materials", totalMaterials, Icons.menu_book),
+                statCard(
+                    "Materials",
+                    totalMaterials,
+                    Icons.menu_book,
+                    chartColors[1]),
 
-                analyticsCard(
-                    "Uploads", totalUploads, Icons.upload),
+                statCard(
+                    "Uploads",
+                    totalUploads,
+                    Icons.upload,
+                    chartColors[2]),
 
-                analyticsCard(
-                    "This Week", uploadsThisWeek, Icons.calendar_today),
-
+                statCard(
+                    "This Week",
+                    uploadsThisWeek,
+                    Icons.calendar_today,
+                    chartColors[3]),
               ],
             ),
 
             const SizedBox(height: 30),
 
             const Text(
-              "Top Contributors",
+              "Materials by Semester",
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 12),
+
+            semesterBarChart(),
+
+            const SizedBox(height: 30),
+
+            const Text(
+              "Upload Trends (Last 7 Days)",
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 12),
+
+            uploadTrendChart(),
+
+            const SizedBox(height: 30),
+
+            const Text(
+              "Top Uploaders",
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 10),
 
-            ...topContributors.asMap().entries.map((entry) {
+            ...topUploaders.asMap().entries.map((entry){
 
               int index = entry.key;
-              var contributor = entry.value;
+              var user = entry.value;
 
               String medal = "🥇";
-              if (index == 1) medal = "🥈";
-              if (index == 2) medal = "🥉";
+              if(index==1) medal="🥈";
+              if(index==2) medal="🥉";
 
-              return ListTile(
-                leading: Text(medal, style: const TextStyle(fontSize: 20)),
-                title: Text(contributor['name']),
-                trailing: Text("${contributor['uploads']} uploads"),
+              return Container(
+
+                margin: const EdgeInsets.symmetric(vertical: 6),
+
+                decoration: BoxDecoration(
+                  color: chartColors[index].withOpacity(.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+
+                child: ListTile(
+                  leading: Text(
+                    medal,
+                    style: const TextStyle(fontSize: 22),
+                  ),
+                  title: Text(user["name"]),
+                  trailing: Text("${user["uploads"]} uploads"),
+                ),
               );
-
             }),
-
-            const SizedBox(height: 30),
-
-            const Text(
-              "Materials by Semester",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            ...List.generate(8, (i) {
-
-              return ListTile(
-                leading: const Icon(Icons.school),
-                title: Text("Semester ${i + 1}"),
-                trailing: Text("${semesterCounts[i]} materials"),
-              );
-
-            }),
-
-            const SizedBox(height: 30),
-
-            const Text(
-              "Most Uploaded Subject",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            ListTile(
-              leading: const Icon(Icons.star),
-              title: Text(mostSubject),
-              trailing: Text("$mostSubjectCount materials"),
-            ),
 
             const SizedBox(height: 30),
 
@@ -309,14 +460,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
             ),
 
-            ...recentUploads.map((item) {
+            ...recentUploads.map((item){
+
+              DateTime date =
+                  DateTime.tryParse(item['created_at']?.toString() ?? '')
+                  ?? DateTime.now();
 
               return ListTile(
                 leading: const Icon(Icons.insert_drive_file),
                 title: Text(item['title']),
-                subtitle: Text(item['created_at']),
+                subtitle: Text(
+                  DateFormat('dd MMM yyyy').format(date),
+                ),
               );
-
             }),
 
           ],
