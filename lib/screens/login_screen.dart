@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 import 'dashboard_screen.dart';
+import 'student_dashboard.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'student_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,19 +27,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (name.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Enter your name")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter your name")),
+      );
       return;
     }
 
     if (code.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Enter access code")));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter access code")),
+      );
       return;
     }
 
+    /// -------- CHECK ADMIN --------
     final admin = await supabase
         .from('admins')
         .select()
@@ -47,9 +50,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (admin != null) {
       final prefs = await SharedPreferences.getInstance();
+
       await prefs.setString("access_code", code);
       await prefs.setString("name", name);
       await prefs.setBool("isLoggedIn", true);
+      await prefs.setString("role", "admin"); // ⭐ important
 
       if (!mounted) return;
 
@@ -60,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    /// -------- CHECK STUDENT --------
     final student = await supabase
         .from('students')
         .select()
@@ -73,9 +79,11 @@ class _LoginScreenState extends State<LoginScreen> {
           .eq('access_code', code);
 
       final prefs = await SharedPreferences.getInstance();
+
       await prefs.setString("access_code", code);
       await prefs.setString("name", name);
       await prefs.setBool("isLoggedIn", true);
+      await prefs.setString("role", "student"); // ⭐ important
 
       if (!mounted) return;
 
@@ -86,10 +94,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    /// -------- INVALID CODE --------
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Invalid access code")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Invalid access code")),
+    );
   }
 
   @override
@@ -99,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       body: Stack(
         children: [
-          /// Soft gradient background
+          /// Gradient Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -110,17 +119,14 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          /// Center Glass Card
+          /// Glass Login Card
           Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(22),
-
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-
                   child: Container(
                     width: 320,
                     padding: const EdgeInsets.all(28),
@@ -209,7 +215,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(
                           width: double.infinity,
                           height: 45,
-
                           child: ElevatedButton(
                             onPressed: () async {
                               FocusScope.of(context).unfocus();

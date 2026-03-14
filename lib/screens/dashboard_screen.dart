@@ -7,25 +7,33 @@ import 'package:ced25/screens/admins_screen.dart' as admin;
 import 'package:ced25/screens/students_screen.dart' as student;
 import 'generate_code_screen.dart';
 import 'analytics_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   /// LOGOUT FUNCTION
-  Future<void> logout(BuildContext context) async {
 
-    final supabase = Supabase.instance.client;
 
-    await supabase.auth.signOut();
+ Future<void> logout(BuildContext context) async {
 
-    if (!context.mounted) return;
+  final supabase = Supabase.instance.client;
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/login',
-      (route) => false,
-    );
-  }
+  /// optional (safe if you ever add Supabase auth)
+  await supabase.auth.signOut();
+
+  /// clear local login data
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+
+  if (!context.mounted) return;
+
+  Navigator.pushNamedAndRemoveUntil(
+    context,
+    '/login',
+    (route) => false,
+  );
+}
 
   @override
   Widget build(BuildContext context) {

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'screens/student_dashboard.dart';
 import 'config/supabase_config.dart';
 import 'screens/login_screen.dart';
 import 'screens/semester_screen.dart';
 import 'screens/dashboard_screen.dart';
 
 Future<void> main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
@@ -20,54 +19,52 @@ Future<void> main() async {
 }
 
 class Ced25App extends StatelessWidget {
-
   const Ced25App({super.key});
 
   Future<String?> getUserRole() async {
-
     final prefs = await SharedPreferences.getInstance();
-
     return prefs.getString("role");
-
   }
 
   @override
   Widget build(BuildContext context) {
-
     return MaterialApp(
-
-      debugShowCheckedModeBanner: false,
       title: "CED25",
+      debugShowCheckedModeBanner: false,
 
       theme: ThemeData(
         primarySwatch: Colors.deepPurple,
       ),
 
       home: FutureBuilder<String?>(
-  future: getUserRole(),
-  builder: (context, snapshot) {
+        future: getUserRole(),
+        builder: (context, snapshot) {
 
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+          /// Loading screen while checking login
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
 
-    final role = snapshot.data;
+          final role = snapshot.data;
 
-    if (role == "student") {
-      return const SemesterScreen();
-    }
+          /// Student auto login
+          if (role == "student") {
+  return const StudentDashboard();
+}
 
-    if (role == "admin") {
-      return const DashboardScreen();
-    }
+          /// Admin auto login
+          if (role == "admin") {
+            return const DashboardScreen();
+          }
 
-    return const LoginScreen();
-  },
-),
+          /// Default → Login screen
+          return const LoginScreen();
+        },
+      ),
     );
   }
 }
