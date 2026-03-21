@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'cloudinary_service.dart';
 
 class UploadService {
-
   final supabase = Supabase.instance.client;
 
   Future<bool> uploadMaterial({
@@ -11,44 +11,32 @@ class UploadService {
     required String title,
     required String subject,
     required int semester,
-    required String type,        // added
+    required String type,
     required String uploadedBy,
   }) async {
-
     try {
+      // 1. Upload file to Cloudinary
+      final result = await CloudinaryService.uploadFile(
+        file,
+        folder: 'materials',
+      );
 
-      /// generate unique file path (prevents overwrite)
-      final path =
-          "materials/${DateTime.now().millisecondsSinceEpoch}_$fileName";
-
-      /// upload file to storage
-      await supabase.storage
-          .from("materials")
-          .upload(path, file, fileOptions: const FileOptions(upsert: true));
-
-      final publicUrl =
-          supabase.storage.from("materials").getPublicUrl(path);
-
-      /// insert record into database
+      // 2. Save metadata to Supabase materials table
       await supabase.from("materials").insert({
-
         "title": title,
         "subject": subject,
         "semester": semester,
-        "type": type,                // fixed
+        "type": type,
         "uploaded_by": uploadedBy,
-        "file_url": publicUrl,
-        "created_at": DateTime.now().toIso8601String()
-
+        "file_url": result.secureUrl,
+        "cloudinary_public_id": result.publicId,
+        "created_at": DateTime.now().toIso8601String(),
       });
 
       return true;
-
     } catch (e) {
-
       print("Upload error: $e");
       return false;
-
     }
   }
 }
