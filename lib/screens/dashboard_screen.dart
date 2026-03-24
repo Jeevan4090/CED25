@@ -8,6 +8,7 @@ import 'package:ced25/screens/students_screen.dart' as student;
 import 'generate_code_screen.dart';
 import 'analytics_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -75,12 +76,13 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Future<void> _logout(BuildContext context) async {
-    final supabase = Supabase.instance.client;
-    await supabase.auth.signOut();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     if (!context.mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   Future<void> _confirmLogout(BuildContext context) async {

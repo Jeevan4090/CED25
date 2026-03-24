@@ -36,11 +36,21 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     loadPdf();
   }
 
+  /// Fixes Cloudinary raw URLs so they stream correctly
+  String _fixUrl(String url) {
+    if (url.contains('res.cloudinary.com') && url.contains('/raw/upload/')) {
+      // Add fl_attachment flag so Cloudinary serves the file directly
+      return url.replaceFirst('/raw/upload/', '/raw/upload/fl_attachment/');
+    }
+    return url;
+  }
+
   Future<void> loadPdf() async {
     setState(() { loading = true; hasError = false; });
 
     try {
-      final response = await http.get(Uri.parse(widget.url));
+      final fetchUrl = _fixUrl(widget.url);
+      final response = await http.get(Uri.parse(fetchUrl));
 
       if (response.statusCode != 200) {
         setState(() {

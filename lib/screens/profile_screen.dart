@@ -3,6 +3,7 @@ import 'package:flutter_heatmap_calendar/flutter_heatmap_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -797,7 +798,18 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
           );
-          if (confirm == true) await supabase.auth.signOut();
+          if (confirm == true) {
+            // Clear all SharedPreferences (the actual login session)
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.clear();
+
+            if (!mounted) return;
+            // Navigate to login and remove all previous routes
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+              (route) => false,
+            );
+          }
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),

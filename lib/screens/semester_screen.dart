@@ -147,120 +147,99 @@ class _SemesterScreenState extends State<SemesterScreen>
 
           // ── SEMESTER LIST ──────────────────────────────────────────
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-              itemCount: semesters.length,
-              itemBuilder: (context, index) {
-                final semester = semesters[index];
-                final gradient = _gradientForIndex(index);
-                final label = _semesterLabels[index];
-                final icon = _semesterIcons[index];
+            child: FadeTransition(
+              opacity: controller,
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                itemCount: semesters.length,
+                itemBuilder: (context, index) {
+                  final semester = semesters[index];
+                  final gradient = _gradientForIndex(index);
+                  final label = _semesterLabels[index];
+                  final icon = _semesterIcons[index];
 
-                final animation = Tween(
-                  begin: const Offset(0, 0.08),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: controller,
-                  curve: Interval(
-                    (index * 0.05).clamp(0.0, 0.6),
-                    1.0,
-                    curve: Curves.easeOut,
-                  ),
-                ));
-
-                return FadeTransition(
-                  opacity: controller,
-                  child: SlideTransition(
-                    position: animation,
-                    child: GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SubjectScreen(semester: semester),
-                        ),
-                      ),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: gradient[0].withOpacity(0.12),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            // Colored left accent + icon
-                            Container(
-                              width: 72,
-                              height: 72,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: gradient,
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: const BorderRadius.horizontal(
-                                  left: Radius.circular(20),
-                                ),
-                              ),
-                              child: Icon(icon, color: Colors.white, size: 28),
-                            ),
-
-                            const SizedBox(width: 16),
-
-                            // Semester info
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Semester $semester',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF0F172A),
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    label,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF94A3B8),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Arrow
-                            Container(
-                              margin: const EdgeInsets.only(right: 16),
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: gradient[0].withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 14,
-                                color: gradient[0],
-                              ),
-                            ),
-                          ],
-                        ),
+                  return GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SubjectScreen(semester: semester),
                       ),
                     ),
-                  ),
-                );
-              },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: gradient[0].withOpacity(0.12),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: gradient,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: const BorderRadius.horizontal(
+                                left: Radius.circular(20),
+                              ),
+                            ),
+                            child: Icon(icon, color: Colors.white, size: 28),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Semester $semester',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  label,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(right: 16),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: gradient[0].withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: gradient[0],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],
