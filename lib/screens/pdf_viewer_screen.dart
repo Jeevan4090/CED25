@@ -1,8 +1,15 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:http/http.dart' as http;
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+
+// ✅ Conditional import — dart:html only on web, stub on Android/iOS
+import 'file_viewer_stub.dart'
+    if (dart.library.html) 'file_viewer_web.dart';
 
 class PdfViewerScreen extends StatefulWidget {
   final String url;
@@ -19,135 +26,126 @@ class PdfViewerScreen extends StatefulWidget {
 }
 
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
-  String? localPath;
-  bool loading = true;
+  bool isLoading = true;
   bool hasError = false;
   String errorMessage = '';
+  WebViewController? _webController;
+
+  // ── PDF viewer state ──
+  String? localPdfPath;
   int currentPage = 0;
   int totalPages = 0;
 
-  // Download state
+  // ── Download state ──
   bool isDownloading = false;
   bool isDownloaded = false;
+  double downloadProgress = 0;
+
+  String get _fileExtension {
+    final path = Uri.parse(widget.url).path.toLowerCase();
+    if (path.endsWith('.pdf')) return 'pdf';
+    if (path.endsWith('.pptx') || path.endsWith('.ppt')) return 'pptx';
+    if (path.endsWith('.docx') || path.endsWith('.doc')) return 'docx';
+    return 'pdf';
+  }
+
+  bool get _isPdf => _fileExtension == 'pdf';
+
+  String get _viewType => 'file-viewer-${widget.url.hashCode}';
+
+  String get _googleDocsUrl =>
+      'https://docs.google.com/viewer?embedded=true&url=${Uri.encodeComponent(widget.url)}';
 
   @override
   void initState() {
     super.initState();
-    loadPdf();
-  }
 
-  /// Fixes Cloudinary raw URLs so they stream correctly
-  String _fixUrl(String url) {
-    if (url.contains('res.cloudinary.com') && url.contains('/raw/upload/')) {
-      // Add fl_attachment flag so Cloudinary serves the file directly
-      return url.replaceFirst('/raw/upload/', '/raw/upload/fl_attachment/');
+    if (kIsWeb) {
+      // ── WEB (iPhone PWA / Desktop browser) ──
+      registerWebViewer(_viewType, widget.url, _isPdf);
+      setState(() => isLoading = false);
+    } else if (_isPdf) {
+      // ── NATIVE — PDF ──
+      _loadPdfLocally();
+    } else {
+      // ── NATIVE — PPT/DOC ──
+      _initWebView();
     }
-    return url;
   }
 
-  Future<void> loadPdf() async {
-    setState(() { loading = true; hasError = false; });
-
+  Future<void> _loadPdfLocally() async {
+    setState(() { isLoading = true; hasError = false; downloadProgress = 0; });
     try {
-      final fetchUrl = _fixUrl(widget.url);
-      final response = await http.get(Uri.parse(fetchUrl));
-
-      if (response.statusCode != 200) {
-        setState(() {
-          loading = false;
-          hasError = true;
-          errorMessage = 'Server returned ${response.statusCode}.\nCheck if the file URL is public.';
-        });
-        return;
-      }
-
-      final contentType = response.headers['content-type'] ?? '';
-      if (!contentType.contains('pdf') && !contentType.contains('octet-stream')) {
-        setState(() {
-          loading = false;
-          hasError = true;
-          errorMessage = 'Invalid file received (got $contentType).\nThe bucket may not be public.';
-        });
-        return;
-      }
-
-      if (response.bodyBytes.isEmpty) {
-        setState(() {
-          loading = false;
-          hasError = true;
-          errorMessage = 'Downloaded file is empty.';
-        });
-        return;
-      }
-
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/temp_${DateTime.now().millisecondsSinceEpoch}.pdf');
-      await file.writeAsBytes(response.bodyBytes);
-
+      final savePath = '${dir.path}/temp_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      await Dio().download(
+        widget.url, savePath,
+        onReceiveProgress: (r, t) {
+          if (t > 0 && mounted) setState(() => downloadProgress = r / t);
+        },
+      );
       if (!mounted) return;
-      setState(() {
-        localPath = file.path;
-        loading = false;
-      });
-
+      setState(() { localPdfPath = savePath; isLoading = false; });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        loading = false;
-        hasError = true;
-        errorMessage = 'Failed to load: $e';
-      });
+      setState(() { isLoading = false; hasError = true; errorMessage = 'Failed to load PDF: $e'; });
     }
   }
 
-  /// Saves PDF directly to the device Downloads folder
-  Future<void> downloadPdf() async {
-    if (localPath == null || isDownloading) return;
+  void _initWebView() {
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFF0F172A))
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (_) { if (mounted) setState(() => isLoading = true); },
+        onPageFinished: (_) { if (mounted) setState(() => isLoading = false); },
+        onWebResourceError: (error) {
+          if (mounted) setState(() {
+            isLoading = false;
+            hasError = true;
+            errorMessage = 'Could not load preview.\n${error.description}';
+          });
+        },
+      ))
+      ..loadRequest(Uri.parse(_googleDocsUrl));
+    setState(() => _webController = controller);
+  }
 
-    setState(() => isDownloading = true);
-
+  Future<void> _downloadFile() async {
+    if (isDownloading) return;
+    setState(() { isDownloading = true; downloadProgress = 0; });
     try {
-      final safeName = widget.title
-          .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
-          .trim();
-      final fileName = '$safeName.pdf';
-
-      // Save directly to /storage/emulated/0/Download/
-      // This is the actual Downloads folder visible in Files app
+      final ext = _fileExtension;
+      final safeName = widget.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
+      final fileName = '$safeName.$ext';
       const downloadsPath = '/storage/emulated/0/Download';
       final downloadsDir = Directory(downloadsPath);
-
       String savePath;
       if (await downloadsDir.exists()) {
         savePath = '$downloadsPath/$fileName';
       } else {
-        // Fallback to external storage if Downloads doesn't exist
         final dir = await getExternalStorageDirectory();
         if (dir == null) throw Exception('Storage unavailable');
         savePath = '${dir.path}/$fileName';
       }
-
-      await File(localPath!).copy(savePath);
-
+      await Dio().download(
+        widget.url, savePath,
+        onReceiveProgress: (r, t) {
+          if (t > 0 && mounted) setState(() => downloadProgress = r / t);
+        },
+      );
       if (!mounted) return;
-      setState(() {
-        isDownloading = false;
-        isDownloaded = true;
-      });
-
+      setState(() { isDownloading = false; isDownloaded = true; });
       _showSuccessSheet(fileName);
     } catch (e) {
       if (!mounted) return;
       setState(() => isDownloading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Download failed: $e'),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Download failed: $e'),
+        backgroundColor: const Color(0xFFEF4444),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
     }
   }
 
@@ -159,155 +157,158 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1B4B),
+          color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-              color: Colors.white.withOpacity(0.1), width: 1),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD1FAE5),
-                borderRadius: BorderRadius.circular(16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: const Color(0xFFD1FAE5), borderRadius: BorderRadius.circular(16)),
+            child: const Icon(Icons.download_done_rounded, color: Color(0xFF059669), size: 32),
+          ),
+          const SizedBox(height: 16),
+          const Text('Downloaded!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white)),
+          const SizedBox(height: 6),
+          Text(fileName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          const Text('Saved to Downloads folder', style: TextStyle(color: Colors.white38, fontSize: 12)),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(context),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF1D4ED8),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: const Icon(Icons.download_done_rounded,
-                  color: Color(0xFF059669), size: 32),
+              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
-            const SizedBox(height: 16),
-            const Text('Downloaded!',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white)),
-            const SizedBox(height: 6),
-            Text(
-              fileName,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white54, fontSize: 13),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Saved to Downloads folder',
-              style: TextStyle(color: Colors.white38, fontSize: 12),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.pop(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF4F46E5),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('Done',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ]),
       ),
     );
   }
 
+  IconData get _fileIcon {
+    switch (_fileExtension) {
+      case 'pptx': return Icons.slideshow_rounded;
+      case 'docx': return Icons.description_rounded;
+      default: return Icons.picture_as_pdf_rounded;
+    }
+  }
+
+  Color get _fileColor {
+    switch (_fileExtension) {
+      case 'pptx': return const Color(0xFFEA580C);
+      case 'docx': return const Color(0xFF2563EB);
+      default: return const Color(0xFFEF4444);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1B4B),
-        foregroundColor: Colors.white,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.title,
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w700),
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (totalPages > 0)
-              Text(
-                'Page ${currentPage + 1} of $totalPages',
-                style: const TextStyle(
-                    fontSize: 11, color: Colors.white54),
-              ),
-          ],
-        ),
-        actions: [
-          // Refresh button
-          if (hasError || !loading)
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: loadPdf,
-              tooltip: 'Reload',
-            ),
-
-          // Download button — only show when PDF is loaded
-          if (!loading && !hasError && localPath != null)
+    // ── WEB BUILD ────────────────────────────────────────────────────────────
+    if (kIsWeb) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1E293B),
+          foregroundColor: Colors.white,
+          title: Text(widget.title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              overflow: TextOverflow.ellipsis),
+          actions: [
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: isDownloaded ? null : downloadPdf,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 10),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isDownloaded
-                        ? const Color(0xFF059669).withOpacity(0.2)
-                        : Colors.white.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isDownloaded
-                          ? const Color(0xFF059669).withOpacity(0.5)
-                          : Colors.white.withOpacity(0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: isDownloading
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isDownloaded
-                                  ? Icons.download_done_rounded
-                                  : Icons.download_rounded,
-                              size: 15,
-                              color: isDownloaded
-                                  ? const Color(0xFF34D399)
-                                  : Colors.white,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              isDownloaded ? 'Saved' : 'Download',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isDownloaded
-                                    ? const Color(0xFF34D399)
-                                    : Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
+              child: TextButton.icon(
+                onPressed: () async {
+                  final uri = Uri.parse(widget.url);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: const Icon(Icons.open_in_new_rounded, size: 16, color: Colors.white70),
+                label: const Text('Open', style: TextStyle(color: Colors.white70, fontSize: 13)),
               ),
             ),
+          ],
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF38BDF8)))
+            : buildWebViewer(_viewType), // ← from conditional import
+      );
+    }
+
+    // ── NATIVE (Android / iOS) BUILD ─────────────────────────────────────────
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E293B),
+        foregroundColor: Colors.white,
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(widget.title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              overflow: TextOverflow.ellipsis),
+          if (_isPdf && totalPages > 0)
+            Text('Page ${currentPage + 1} of $totalPages',
+                style: const TextStyle(fontSize: 11, color: Colors.white54)),
+          if (!_isPdf)
+            const Text('via Google Docs Viewer',
+                style: TextStyle(fontSize: 10, color: Colors.white38)),
+        ]),
+        actions: [
+          if (hasError)
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: _isPdf ? _loadPdfLocally : _initWebView,
+            ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: isDownloaded ? null : _downloadFile,
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isDownloaded ? const Color(0xFF059669).withOpacity(0.2) : Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDownloaded ? const Color(0xFF059669).withOpacity(0.5) : Colors.white.withOpacity(0.2),
+                  ),
+                ),
+                child: isDownloading
+                    ? Row(mainAxisSize: MainAxisSize.min, children: [
+                        SizedBox(
+                          width: 14, height: 14,
+                          child: CircularProgressIndicator(
+                            value: downloadProgress > 0 ? downloadProgress : null,
+                            strokeWidth: 2, color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text('${(downloadProgress * 100).toInt()}%',
+                            style: const TextStyle(fontSize: 11, color: Colors.white54)),
+                      ])
+                    : Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(
+                          isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
+                          size: 15,
+                          color: isDownloaded ? const Color(0xFF34D399) : Colors.white,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          isDownloaded ? 'Saved' : 'Download',
+                          style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600,
+                            color: isDownloaded ? const Color(0xFF34D399) : Colors.white,
+                          ),
+                        ),
+                      ]),
+              ),
+            ),
+          ),
         ],
       ),
       body: _buildBody(),
@@ -315,52 +316,59 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   }
 
   Widget _buildBody() {
-    if (loading) return _buildLoader();
     if (hasError) return _buildError();
+    if (_isPdf) {
+      if (isLoading || localPdfPath == null) return _buildLoader('Loading PDF…');
+      return _buildPdfView();
+    } else {
+      if (_webController == null) return _buildLoader('Opening file…');
+      return Stack(children: [
+        WebViewWidget(controller: _webController!),
+        if (isLoading)
+          Container(color: const Color(0xFF0F172A), child: _buildLoader('Loading preview…')),
+      ]);
+    }
+  }
 
+  Widget _buildLoader(String message) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(
+          width: 56, height: 56,
+          child: CircularProgressIndicator(
+            value: (!_isPdf || downloadProgress == 0) ? null : downloadProgress,
+            color: const Color(0xFF38BDF8),
+            backgroundColor: Colors.white12,
+            strokeWidth: 4,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(message, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 15)),
+        const SizedBox(height: 6),
+        Text(
+          downloadProgress > 0 ? '${(downloadProgress * 100).toInt()}%' : 'Please wait',
+          style: const TextStyle(color: Colors.white38, fontSize: 12),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildPdfView() {
     return PDFView(
-      filePath: localPath!,
+      filePath: localPdfPath!,
       enableSwipe: true,
       swipeHorizontal: false,
       autoSpacing: true,
       pageFling: true,
       pageSnap: true,
       fitPolicy: FitPolicy.BOTH,
-      onRender: (pages) {
-        if (mounted) setState(() => totalPages = pages ?? 0);
-      },
+      onRender: (pages) { if (mounted) setState(() => totalPages = pages ?? 0); },
       onPageChanged: (page, total) {
-        if (mounted) setState(() {
-          currentPage = page ?? 0;
-          totalPages = total ?? 0;
-        });
+        if (mounted) setState(() { currentPage = page ?? 0; totalPages = total ?? 0; });
       },
       onError: (e) {
-        if (mounted) setState(() {
-          hasError = true;
-          errorMessage = 'Could not render PDF: $e';
-        });
+        if (mounted) setState(() { hasError = true; errorMessage = 'Could not render PDF: $e'; });
       },
-    );
-  }
-
-  Widget _buildLoader() {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(color: Color(0xFF6366F1)),
-          SizedBox(height: 16),
-          Text('Loading PDF…',
-              style: TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15)),
-          SizedBox(height: 6),
-          Text('Please wait',
-              style: TextStyle(color: Colors.white38, fontSize: 12)),
-        ],
-      ),
     );
   }
 
@@ -368,60 +376,33 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEE2E2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(Icons.picture_as_pdf_rounded,
-                  color: Color(0xFFEF4444), size: 40),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: _fileColor.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+            child: Icon(_fileIcon, color: _fileColor, size: 40),
+          ),
+          const SizedBox(height: 20),
+          const Text('Could not open file', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+            child: Text(errorMessage, textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.5)),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: _isPdf ? _loadPdfLocally : _initWebView,
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Retry'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF1D4ED8),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            const SizedBox(height: 20),
-            const Text('Could not open PDF',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white)),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                errorMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Colors.white60, fontSize: 13, height: 1.5),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              '💡 Fix: Go to Supabase → Storage → your bucket → Make it Public',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Colors.amber, fontSize: 12, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: loadPdf,
-              icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text('Retry'),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF4F46E5),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ]),
       ),
     );
   }

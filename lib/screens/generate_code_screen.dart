@@ -358,13 +358,82 @@ class _GenerateCodeScreenState extends State<GenerateCodeScreen> {
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        padding:
-                            const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                        itemCount: filteredCodes.length,
-                        itemBuilder: (context, index) {
-                          final code = filteredCodes[index];
-                          final bool used = code['used'] == true;
+                    : Builder(builder: (context) {
+                        final unusedCodes = filteredCodes.where((c) => c['used'] != true).toList();
+                        final usedCodes = filteredCodes.where((c) => c['used'] == true).toList();
+
+                        final List<dynamic> items = [];
+                        if (unusedCodes.isNotEmpty) {
+                          items.add('__header_unused__');
+                          items.addAll(unusedCodes);
+                        }
+                        if (usedCodes.isNotEmpty) {
+                          items.add('__header_used__');
+                          items.addAll(usedCodes);
+                        }
+
+                        return ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                          itemCount: items.length,
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+
+                            if (item == '__header_unused__') {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10, top: 4),
+                                child: Row(children: [
+                                  Container(
+                                    width: 8, height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF10B981),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'UNUSED (\${unusedCodes.length})',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF10B981),
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: Divider(color: const Color(0xFF10B981).withOpacity(0.3), thickness: 1)),
+                                ]),
+                              );
+                            }
+
+                            if (item == '__header_used__') {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10, top: 16),
+                                child: Row(children: [
+                                  Container(
+                                    width: 8, height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFEF4444),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'USED (\${usedCodes.length})',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFFEF4444),
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: Divider(color: const Color(0xFFEF4444).withOpacity(0.3), thickness: 1)),
+                                ]),
+                              );
+                            }
+
+                            final code = item as Map<String, dynamic>;
+                            final bool used = code['used'] == true;
 
                           return Dismissible(
                             key: ValueKey(code['id']),
@@ -553,7 +622,8 @@ class _GenerateCodeScreenState extends State<GenerateCodeScreen> {
                             ),
                           );
                         },
-                      ),
+                        );  // ListView.builder
+                      }), // Builder
           ),
         ],
       ),

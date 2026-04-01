@@ -47,9 +47,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     for (var item in materials) {
       DateTime created =
           DateTime.tryParse(item['created_at']?.toString() ?? '') ??
-              DateTime.now();
-      int diff = now.difference(created).inDays;
-      if (diff < 7) {
+          DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final createdDate = DateTime(created.year, created.month, created.day);
+      final diff = today.difference(createdDate).inDays;
+      if (diff >= 0 && diff < 7) {
         uploadsWeek++;
         weekCounts[6 - diff] += 1;
       }
@@ -98,34 +100,42 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               slivers: [
                 SliverToBoxAdapter(child: _buildHeader(context, topPad)),
                 SliverToBoxAdapter(child: _buildStatGrid()),
-                SliverToBoxAdapter(child: _buildSectionCard(
-                  title: 'Materials by Semester',
-                  subtitle: 'Distribution across all 8 semesters',
-                  icon: Icons.bar_chart_rounded,
-                  iconColor: const Color(0xFF6366F1),
-                  child: _semesterBarChart(),
-                )),
-                SliverToBoxAdapter(child: _buildSectionCard(
-                  title: 'Upload Trends',
-                  subtitle: 'Last 7 days activity',
-                  icon: Icons.show_chart_rounded,
-                  iconColor: const Color(0xFF0EA5E9),
-                  child: _uploadTrendChart(),
-                )),
-                SliverToBoxAdapter(child: _buildSectionCard(
-                  title: 'Top Uploaders',
-                  subtitle: 'Most active contributors',
-                  icon: Icons.emoji_events_rounded,
-                  iconColor: const Color(0xFFF59E0B),
-                  child: _buildTopUploaders(),
-                )),
-                SliverToBoxAdapter(child: _buildSectionCard(
-                  title: 'Recent Uploads',
-                  subtitle: 'Latest materials added',
-                  icon: Icons.history_rounded,
-                  iconColor: const Color(0xFF10B981),
-                  child: _buildRecentUploads(),
-                )),
+                SliverToBoxAdapter(
+                  child: _buildSectionCard(
+                    title: 'Materials by Semester',
+                    subtitle: 'Distribution across all 8 semesters',
+                    icon: Icons.bar_chart_rounded,
+                    iconColor: const Color(0xFF6366F1),
+                    child: _semesterBarChart(),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: _buildSectionCard(
+                    title: 'Upload Trends',
+                    subtitle: 'Last 7 days activity',
+                    icon: Icons.show_chart_rounded,
+                    iconColor: const Color(0xFF0EA5E9),
+                    child: _uploadTrendChart(),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: _buildSectionCard(
+                    title: 'Top Uploaders',
+                    subtitle: 'Most active contributors',
+                    icon: Icons.emoji_events_rounded,
+                    iconColor: const Color(0xFFF59E0B),
+                    child: _buildTopUploaders(),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: _buildSectionCard(
+                    title: 'Recent Uploads',
+                    subtitle: 'Latest materials added',
+                    icon: Icons.history_rounded,
+                    iconColor: const Color(0xFF10B981),
+                    child: _buildRecentUploads(),
+                  ),
+                ),
                 const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             ),
@@ -137,7 +147,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildHeader(BuildContext context, double topPad) {
     return Container(
       padding: EdgeInsets.only(
-          top: topPad + 16, left: 24, right: 20, bottom: 28),
+        top: topPad + 16,
+        left: 24,
+        right: 20,
+        bottom: 28,
+      ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF1E1B4B), Color(0xFF3730A3)],
@@ -150,8 +164,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: Colors.white70, size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white70,
+              size: 20,
+            ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -172,18 +189,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 SizedBox(height: 4),
                 Text(
                   'Overview of your platform',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: Colors.white54, fontSize: 13),
                 ),
               ],
             ),
           ),
-          _HeaderIconBtn(
-            icon: Icons.refresh_rounded,
-            onTap: loadAnalytics,
-          ),
+          _HeaderIconBtn(icon: Icons.refresh_rounded, onTap: loadAnalytics),
         ],
       ),
     );
@@ -193,14 +204,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Widget _buildStatGrid() {
     final stats = [
-      _StatData('Students', totalStudents, Icons.people_alt_rounded,
-          [const Color(0xFF6366F1), const Color(0xFF818CF8)]),
-      _StatData('Materials', totalMaterials, Icons.menu_book_rounded,
-          [const Color(0xFF0EA5E9), const Color(0xFF38BDF8)]),
-      _StatData('Total Uploads', totalUploads, Icons.cloud_upload_rounded,
-          [const Color(0xFF10B981), const Color(0xFF34D399)]),
-      _StatData('This Week', uploadsThisWeek, Icons.trending_up_rounded,
-          [const Color(0xFFF59E0B), const Color(0xFFFBBF24)]),
+      _StatData('Students', totalStudents, Icons.people_alt_rounded, [
+        const Color(0xFF6366F1),
+        const Color(0xFF818CF8),
+      ]),
+      _StatData('Materials', totalMaterials, Icons.menu_book_rounded, [
+        const Color(0xFF0EA5E9),
+        const Color(0xFF38BDF8),
+      ]),
+      _StatData('Total Uploads', totalUploads, Icons.cloud_upload_rounded, [
+        const Color(0xFF10B981),
+        const Color(0xFF34D399),
+      ]),
+      _StatData('This Week', uploadsThisWeek, Icons.trending_up_rounded, [
+        const Color(0xFFF59E0B),
+        const Color(0xFFFBBF24),
+      ]),
     ];
 
     return Padding(
@@ -261,15 +280,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF111827))),
-                    Text(subtitle,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -285,9 +310,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   // ── SEMESTER BAR CHART ────────────────────────────────────────────────────
 
   Widget _semesterBarChart() {
-    final maxY =
-        (semesterCounts.reduce((a, b) => a > b ? a : b).toDouble() + 2)
-            .clamp(4.0, double.infinity);
+    final maxY = (semesterCounts.reduce((a, b) => a > b ? a : b).toDouble() + 2)
+        .clamp(4.0, double.infinity);
 
     const gradients = [
       [Color(0xFF6366F1), Color(0xFF818CF8)],
@@ -308,35 +332,35 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           barTouchData: BarTouchData(
             touchCallback: (event, response) {
               setState(() {
-                _touchedBarIndex =
-                    response?.spot?.touchedBarGroupIndex;
+                _touchedBarIndex = response?.spot?.touchedBarGroupIndex;
               });
             },
             touchTooltipData: BarTouchTooltipData(
               getTooltipItem: (group, groupIndex, rod, rodIndex) =>
                   BarTooltipItem(
-                '${rod.toY.toInt()}',
-                const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700),
-              ),
+                    '${rod.toY.toInt()}',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
             ),
           ),
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
             horizontalInterval: maxY / 4,
-            getDrawingHorizontalLine: (_) => FlLine(
-              color: Colors.grey.shade100,
-              strokeWidth: 1,
-            ),
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: Colors.grey.shade100, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -359,8 +383,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 reservedSize: 28,
                 getTitlesWidget: (value, _) => Text(
                   value.toInt().toString(),
-                  style: TextStyle(
-                      fontSize: 10, color: Colors.grey.shade400),
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                 ),
               ),
             ),
@@ -398,32 +421,39 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            getDrawingHorizontalLine: (_) => FlLine(
-              color: Colors.grey.shade100,
-              strokeWidth: 1,
-            ),
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: Colors.grey.shade100, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, _) {
-                  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
                   final i = value.toInt();
                   if (i < 0 || i >= 7) return const SizedBox();
+                  // index 6 = today, index 0 = 6 days ago
+                  final day = DateTime.now().subtract(Duration(days: 6 - i));
+                  final label = DateFormat(
+                    'E',
+                  ).format(day)[0]; // 'M','T','W' etc.
+                  final isToday = i == 6;
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      days[i],
+                      label,
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade500,
+                        fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                        color: isToday
+                            ? const Color(0xFF0EA5E9) // highlight today
+                            : Colors.grey.shade500,
                       ),
                     ),
                   );
@@ -436,8 +466,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 reservedSize: 28,
                 getTitlesWidget: (value, _) => Text(
                   value.toInt().toString(),
-                  style: TextStyle(
-                      fontSize: 10, color: Colors.grey.shade400),
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                 ),
               ),
             ),
@@ -455,8 +484,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               dotData: FlDotData(
                 show: true,
-                getDotPainter: (spot, _, __, ___) =>
-                    FlDotCirclePainter(
+                getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
                   radius: 4,
                   color: Colors.white,
                   strokeWidth: 2.5,
@@ -540,7 +568,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           minHeight: 5,
                           backgroundColor: Colors.black.withOpacity(0.08),
                           valueColor: AlwaysStoppedAnimation<Color>(
-                              textColors[i]),
+                            textColors[i],
+                          ),
                         ),
                       ),
                     ],
@@ -549,7 +578,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 const SizedBox(width: 14),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: textColors[i].withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -582,8 +613,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: recentUploads.asMap().entries.map((entry) {
         final i = entry.key;
         final item = entry.value;
-        final date = DateTime.tryParse(
-                item['created_at']?.toString() ?? '') ??
+        final date =
+            DateTime.tryParse(item['created_at']?.toString() ?? '') ??
             DateTime.now();
         final isLast = i == recentUploads.length - 1;
 
@@ -599,8 +630,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.insert_drive_file_rounded,
-                      color: Color(0xFF6366F1), size: 18),
+                  child: const Icon(
+                    Icons.insert_drive_file_rounded,
+                    color: Color(0xFF6366F1),
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -620,14 +654,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       Text(
                         DateFormat('dd MMM yyyy').format(date),
                         style: TextStyle(
-                            fontSize: 12, color: Colors.grey.shade500),
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFD1FAE5),
                     borderRadius: BorderRadius.circular(6),
@@ -646,8 +684,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             if (!isLast)
               Padding(
                 padding: const EdgeInsets.fromLTRB(52, 8, 0, 8),
-                child: Divider(
-                    height: 1, color: Colors.grey.shade100),
+                child: Divider(height: 1, color: Colors.grey.shade100),
               ),
           ],
         );
@@ -659,8 +696,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Center(
-        child: Text(message,
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+        child: Text(
+          message,
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+        ),
       ),
     );
   }
@@ -682,8 +721,7 @@ class _HeaderIconBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: Colors.white.withOpacity(0.2), width: 1),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
         ),
         child: Icon(icon, color: Colors.white, size: 18),
       ),
