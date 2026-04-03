@@ -15,6 +15,7 @@ A mobile application built with Flutter that allows students to access and downl
 * Flutter
 * Supabase
 * Dart
+* cloudinary 
 
 ## Setup
   Clone the repository:
